@@ -1,0 +1,10 @@
+data/
+runs/
+__pycache__/
+*.pyc
+results/**/*.generations.jsonl
+.ipynb_checkpoints/
+logs/
+
+# course documents
+*.pdf

@@ -1,0 +1,16 @@
+# Keep lora / lr / epochs / batch identical across conditions and model sizes.
+name: qwen2.5-0.5b
+model: Qwen/Qwen2.5-0.5B
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+lr: 2.0e-4
+weight_decay: 0.0
+epochs: 2
+batch_size: 16
+grad_accum: 1
+warmup_ratio: 0.03
+max_len: 256
+grad_checkpointing: false
