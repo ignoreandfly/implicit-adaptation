@@ -45,7 +45,8 @@ set. Finished runs are skipped, so re-running after a disconnect resumes.
 
 - **VS Code + Google Colab extension:** open the notebook, *Select Kernel > Colab > New Colab
   Server*, pick a GPU. The kernel runs on the Colab machine, so the notebook clones the repo
-  there and prompts for a read-only GitHub token (or right-click the repo > *Upload to Colab*).
+  there. Put tokens in `.env` (copy `.env.example`; gitignored) and right-click it > *Upload
+  to Colab*; without it the notebook prompts for the GitHub token.
   For results on Drive, run *Colab: Mount Google Drive to Server...* first; otherwise they land
   in `/content/results` and are zipped at the end for download from the *Contents* view.
 - **Colab web UI:** pick a GPU runtime, add a `GITHUB_TOKEN` secret, run all cells. Results
