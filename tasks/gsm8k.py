@@ -1,5 +1,4 @@
-"""GSM8K: loader that writes our jsonl format, plus a verifier with the same interface as
-tasks.arithmetic.verify.
+"""GSM8K: loader that writes our jsonl format, plus a verifier used by evaluation.generate.
 
 GSM8K rationales look like "Natalia sold 48/2 = <<48/2=24>>24 clips in May.\n...\n#### 72".
 We drop the <<calc>> annotations, join lines into one paragraph (generation stops at a
@@ -71,8 +70,14 @@ def _apply(a, op, b):
 
 
 def verify(output: str, answer: str) -> dict:
-    """Same keys and semantics as tasks.arithmetic.verify, with numbers normalized
-    (commas, $, trailing .0) before comparing."""
+    """Score a (truncated) model output. Numbers are normalized ($, commas, .0) first.
+
+    strict:    first number after "answer is" (our template; any casing).
+    lenient:   first number after any "answer[ is|:|=]" or "####", else the last number.
+               Uses the first committed answer because base models keep generating.
+    format_ok: >=2 equations "a op b = c" and some answer phrase.
+    steps:     local correctness of each equation (a op b really equals c).
+    """
     strict = _STRICT_RE.findall(output)
     loose = _LOOSE_ANS_RE.findall(output)
     ints = _INT_RE.findall(output)

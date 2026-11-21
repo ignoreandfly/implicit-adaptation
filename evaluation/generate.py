@@ -1,11 +1,10 @@
 """Generate on a task split, score with the task verifier, write generations + metrics.
 
 Greedy (pass@1):
-    python -m evaluation.generate --model Qwen/Qwen2.5-0.5B --task arithmetic --split test_id \
-        --out results/qwen0.5b/base_zero_shot
-Few-shot base model:   add --few_shot 3
-Trained LoRA adapter:  add --adapter runs/<run>/adapter
-pass@k:                add --n_samples 64 --temperature 0.8
+    python -m evaluation.generate --model Qwen/Qwen2.5-0.5B --task gsm8k --split test \
+        --out results/qwen2.5-0.5b/gsm8k/base_zero_shot
+Few-shot:  add --few_shot 8
+pass@k:    add --n_samples 16 --temperature 0.8
 """
 
 import argparse
@@ -25,14 +24,13 @@ from tasks import get_task
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
-    ap.add_argument("--adapter", default=None)
-    ap.add_argument("--task", default="arithmetic")
+    ap.add_argument("--task", default="gsm8k")
     ap.add_argument("--data_dir", default=None)
-    ap.add_argument("--split", default="test_id")
+    ap.add_argument("--split", default="test")
     ap.add_argument("--few_shot", type=int, default=0)
     ap.add_argument("--n_samples", type=int, default=1)
     ap.add_argument("--temperature", type=float, default=0.0)
-    ap.add_argument("--max_new_tokens", type=int, default=200)
+    ap.add_argument("--max_new_tokens", type=int, default=512)
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--seed", type=int, default=0)
@@ -55,9 +53,6 @@ def main():
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
     model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.bfloat16).cuda().eval()
-    if args.adapter:
-        from peft import PeftModel
-        model = PeftModel.from_pretrained(model, args.adapter).merge_and_unload()
 
     do_sample = args.temperature > 0
     if args.n_samples > 1 and not do_sample:
@@ -88,7 +83,7 @@ def main():
                      "outputs": outs, "scores": scores})
 
     metrics = aggregate(per_problem)
-    metrics.update({"model": args.model, "adapter": args.adapter, "task": args.task, "split": args.split,
+    metrics.update({"model": args.model, "task": args.task, "split": args.split,
                     "few_shot": args.few_shot, "temperature": args.temperature,
                     "seconds": round(time.time() - t0, 1), "git": git_hash()})
     out = Path(args.out)

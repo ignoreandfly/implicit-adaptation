@@ -56,7 +56,6 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 - [ ] Hewitt rule-based adapter (`adapters/`): EOS boost with length, fixed shift on a few tokens, repetition penalty
 - [ ] Inference-time scaling ideas: fork-aware decoding (raise temperature / branch at high-entropy tokens),
       DTR-weighted answer selection, encouraging deep tokens during decoding
-- [ ] Earlier proposal items still open: ranking test, `last_letter` / `coin_flip` tasks, LIMA replication
 
 ## Rough compute (one L4, to be replaced by smoke-test timings)
 
@@ -72,4 +71,3 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 - [ ] **Sampling budget:** n = 64 on the full test set, n = 64 on a fixed 500-problem subset, or n = 16 only
 - [ ] GPU and environment for the runs (L4 on GCP? vLLM installable?)
 - [ ] 8-shot for the post-trained models too, or zero-shot chat only
-- [ ] Our own SFT of Qwen2.5-0.5B on the Tülu 3 mix (gives Qwen an SFT-only stage)

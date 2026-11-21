@@ -1,5 +1,4 @@
 data/
-runs/
 __pycache__/
 *.pyc
 results/**/*.generations.jsonl

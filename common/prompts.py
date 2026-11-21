@@ -1,14 +1,10 @@
 """Prompt templates shared by training and evaluation.
 
-Every condition sees the same surface format. The only thing that changes between
-conditions is what is removed (the question, for response-only) or corrupted.
+Base models get the plain format below; post-trained models will use their chat
+template (see ROADMAP.md).
 """
 
 QUESTION_TEMPLATE = "Question: {question}\nAnswer:"
-
-# Response-only tuning keeps the template tokens and drops the question, analogous to
-# Hewitt et al. removing the instruction but keeping the response.
-RESPONSE_ONLY_PROMPT = "Answer:"
 
 # Generation is cut at the first of these (base models keep inventing new questions).
 STOP_STRINGS = ["\n\n", "\nQuestion:"]
