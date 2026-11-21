@@ -40,11 +40,16 @@ def make_row(ex):
 # ---------------------------------------------------------------- verifier
 
 _NUM = r"-?\$?\d[\d,]*(?:\.\d+)?"
-_STRICT_RE = re.compile(r"answer is\s*:?\s*(" + _NUM + ")", re.I)
-_LOOSE_ANS_RE = re.compile(r"(?:answer\s*(?:is|:|=)?|####)\s*:?\s*(" + _NUM + ")", re.I)
+# What may sit between an answer phrase and the number: spaces, ':', markdown bold,
+# LaTeX openers ("$", "\$", "\(", "\[", "\boxed{", "\text{"). Chat models use all of these.
+_FILL = r"(?:\s|:|\*|\$|\\\$|\\\(|\\\[|\\boxed\{|\\text\{)*"
+_STRICT_RE = re.compile(r"answer is" + _FILL + "(" + _NUM + ")", re.I)
+_LOOSE_ANS_RE = re.compile(r"(?:answer\s*(?:is|:|=)?|####|\\boxed\{)" + _FILL + "(" + _NUM + ")", re.I)
 _INT_RE = re.compile(_NUM)
-# "a op b = c", allowing $, commas, decimals and the GSM8K operators (incl. / and x).
-_STEP_RE = re.compile(r"(" + _NUM + r")\s*([+\-*/x×÷])\s*(" + _NUM + r")\s*=\s*(" + _NUM + ")")
+# "a op b = c", allowing $, commas, decimals, plain and LaTeX operators.
+_OPS = r"(\\times|\\cdot|\\div|[+\-*/x×÷·])"
+_STEP_RE = re.compile("(" + _NUM + r")\s*" + _OPS + r"\s*(" + _NUM + r")\s*=\s*\$?\s*(" + _NUM + ")")
+_MUL = {"*", "x", "×", "·", "\\times", "\\cdot"}
 
 
 def normalize_number(s):
@@ -64,7 +69,7 @@ def _apply(a, op, b):
         return a + b
     if op == "-":
         return a - b
-    if op in "*x×":
+    if op in _MUL:
         return a * b
     return a / b if b else None
 
@@ -73,7 +78,7 @@ def verify(output: str, answer: str) -> dict:
     """Score a (truncated) model output. Numbers are normalized ($, commas, .0) first.
 
     strict:    first number after "answer is" (our template; any casing).
-    lenient:   first number after any "answer[ is|:|=]" or "####", else the last number.
+    lenient:   first number after any "answer[ is|:|=]", "####" or "\\boxed{", else the last number.
                Uses the first committed answer because base models keep generating.
     format_ok: >=2 equations "a op b = c" and some answer phrase.
     steps:     local correctness of each equation (a op b really equals c).

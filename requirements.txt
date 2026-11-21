@@ -1,7 +1,7 @@
 torch>=2.4
-transformers>=4.45
+transformers>=4.48  # OLMo 2 support
 accelerate
 datasets
-pyyaml
 pandas
 numpy
+tabulate

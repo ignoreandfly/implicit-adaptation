@@ -27,13 +27,14 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 ### Setup
 - [x] GSM8K loader and verifier (`tasks/gsm8k.py`): drops `<<calc>>` notes, ends solutions with
       "Therefore, the answer is N.", normalizes `$`, commas and decimals
-- [ ] Model registry: name, HF id, stage, prompt format (plain vs. chat template)
-- [ ] `evaluation/generate.py`: use the chat template for post-trained models
-- [ ] Stop strings per prompt format: chat models stop only at EOS (`\n\n` cuts off multi-paragraph answers)
-- [ ] Verifier: accept `\boxed{N}` and `#### N` as answer formats
-- [ ] Log generated length and the share of outputs that hit `max_new_tokens`
-- [ ] Add maj@k (majority vote) to `evaluation/metrics.py`
+- [x] Model registry (`common/models.py`): short name, HF id, prompt format (plain vs. chat template)
+- [x] `evaluation/generate.py`: chat template for post-trained models (few-shot = earlier turns), bf16/float32 by GPU
+- [x] Stop strings per prompt format: chat models stop only at EOS (`\n\n` cuts off multi-paragraph answers)
+- [x] Verifier: accept `\boxed{N}`, `#### N`, markdown bold and LaTeX (`$`, `\times`) in answers and equations
+- [x] Log generated length and the share of outputs that hit `max_new_tokens`
+- [x] Add maj@k (majority vote) to `evaluation/metrics.py`
 - [ ] Sampling backend for n > 1 (vLLM); the HF path drops to batch size 1 at n = 64
+- [x] Colab notebook (`notebooks/colab_baselines.ipynb`): smoke test + full runs, results on Drive
 - [ ] Smoke test: 50 questions per model, check outputs by eye, record real run times
 
 ### Runs (greedy pass@1, max 512 new tokens)
@@ -69,5 +70,5 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 ## Open decisions
 
 - [ ] **Sampling budget:** n = 64 on the full test set, n = 64 on a fixed 500-problem subset, or n = 16 only
-- [ ] GPU and environment for the runs (L4 on GCP? vLLM installable?)
+- [ ] GPU and environment for the full runs: Colab for now; GCP L4 for sampling runs? vLLM installable?
 - [ ] 8-shot for the post-trained models too, or zero-shot chat only
