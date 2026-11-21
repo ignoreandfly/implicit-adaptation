@@ -34,7 +34,11 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 - [ ] Sampling backend for n > 1 (vLLM); the HF path drops to batch size 1 at n = 64
 - [x] Colab notebook (`notebooks/colab_baselines.ipynb`): smoke test + full runs, results on Drive
 - [x] Smoke test: 50 questions per model, check outputs by eye, record real run times (results below)
-- [ ] Look at truncated outputs (Instruct: 10% hit 512 tokens): loops, or raise `max_new_tokens`?
+- [x] Look at truncated outputs: Base truncations are repetition loops; DPO/Instruct truncations are long
+      self-correcting derivations ("Let's re-evaluate"). Keep 512 tokens (more would mostly add time) and report
+      `truncation_rate`. Optional check: Instruct smoke with `--max_new_tokens 1024`.
+- [ ] Phase 2 notes: Base loop rate is a baseline for the adapter's repetition rule; self-correction phrases
+      (none in SFT, most in RLVR) are candidate forking tokens for the entropy/DTR analysis
 - [ ] `format_rate` undercounts chat models (needs >= 2 `a op b = c` equations; misses `2 (blue) + 1 (white) = 3`, `\frac`)
 
 ### Runs (greedy pass@1, max 512 new tokens)
