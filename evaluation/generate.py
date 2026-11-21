@@ -84,19 +84,33 @@ def main():
     bs = max(1, args.batch_size // args.n_samples) if args.n_samples > 1 else args.batch_size
     stop_kw = {"stop_strings": prompts.STOP_STRINGS, "tokenizer": tok} if fmt == "plain" else {}
 
+    def generate(batch):
+        """Token ids generated for each prompt in batch (n_samples rows per prompt).
+        On CUDA out-of-memory, splits the batch in half and retries."""
+        # Chat templates already contain any special tokens, so don't add a second BOS.
+        enc = tok(batch, return_tensors="pt", padding=True,
+                  add_special_tokens=(fmt == "plain")).to("cuda")
+        try:
+            with torch.no_grad():
+                gen = model.generate(
+                    **enc, max_new_tokens=args.max_new_tokens, do_sample=do_sample,
+                    temperature=args.temperature if do_sample else None,
+                    top_p=1.0 if do_sample else None, top_k=0 if do_sample else None,
+                    num_return_sequences=args.n_samples, pad_token_id=tok.pad_token_id, **stop_kw)
+        except torch.cuda.OutOfMemoryError:
+            if len(batch) == 1:
+                raise
+            del enc
+            torch.cuda.empty_cache()
+            h = len(batch) // 2
+            print(f"OOM at batch {len(batch)}; retrying as {h} + {len(batch) - h}", flush=True)
+            return generate(batch[:h]) + generate(batch[h:])
+        return gen[:, enc.input_ids.shape[1]:].tolist()
+
     t0 = time.time()
     outputs, lengths = [], []
     for i in range(0, len(texts), bs):
-        # Chat templates already contain any special tokens, so don't add a second BOS.
-        enc = tok(texts[i:i + bs], return_tensors="pt", padding=True,
-                  add_special_tokens=(fmt == "plain")).to("cuda")
-        with torch.no_grad():
-            gen = model.generate(
-                **enc, max_new_tokens=args.max_new_tokens, do_sample=do_sample,
-                temperature=args.temperature if do_sample else None, top_p=1.0 if do_sample else None,
-                top_k=0 if do_sample else None,
-                num_return_sequences=args.n_samples, pad_token_id=tok.pad_token_id, **stop_kw)
-        new = gen[:, enc.input_ids.shape[1]:].tolist()
+        new = generate(texts[i:i + bs])
         dec = tok.batch_decode(new, skip_special_tokens=True)
         # Generated length = tokens before the first EOS/pad (stop strings also end in padding).
         lens = [next((t for t, x in enumerate(ids) if x in ends), len(ids)) for ids in new]
