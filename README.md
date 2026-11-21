@@ -40,10 +40,16 @@ results/     generations + metrics per run
 
 ## Running on Colab
 
-Open `notebooks/colab_baselines.ipynb` in Colab (*File > Open notebook > GitHub*, or upload it),
-pick a GPU runtime, add a `GITHUB_TOKEN` secret with read access to this repo, and run all cells.
-It runs a 50-question smoke test per model, then the full test set, and saves results to
-`MyDrive/implicit-adaptation/`. Finished runs are skipped, so re-running after a disconnect resumes.
+`notebooks/colab_baselines.ipynb` runs a 50-question smoke test per model, then the full test
+set. Finished runs are skipped, so re-running after a disconnect resumes.
+
+- **VS Code + Google Colab extension:** open the notebook, *Select Kernel > Colab > New Colab
+  Server*, pick a GPU. The kernel runs on the Colab machine, so the notebook clones the repo
+  there and prompts for a read-only GitHub token (or right-click the repo > *Upload to Colab*).
+  For results on Drive, run *Colab: Mount Google Drive to Server...* first; otherwise they land
+  in `/content/results` and are zipped at the end for download from the *Contents* view.
+- **Colab web UI:** pick a GPU runtime, add a `GITHUB_TOKEN` secret, run all cells. Results
+  are saved to `MyDrive/implicit-adaptation/`.
 
 ## Quick start (any GPU machine)
 
