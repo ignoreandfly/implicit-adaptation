@@ -13,9 +13,6 @@ MODELS = {
     "olmo2-1b-sft": ("allenai/OLMo-2-0425-1B-SFT", "chat"),
     "olmo2-1b-dpo": ("allenai/OLMo-2-0425-1B-DPO", "chat"),
     "olmo2-1b-instruct": ("allenai/OLMo-2-0425-1B-Instruct", "chat"),  # SFT + DPO + RLVR
-    # Qwen2.5 0.5B
-    "qwen2.5-0.5b-base": ("Qwen/Qwen2.5-0.5B", "plain"),
-    "qwen2.5-0.5b-instruct": ("Qwen/Qwen2.5-0.5B-Instruct", "chat"),  # SFT + DPO + GRPO
 }
 
 

@@ -8,8 +8,8 @@ Open decisions are listed at the bottom; don't build anything that depends on th
 Hewitt et al.'s rule-based adapter (a Python program that edits the next-token
 distribution, no training) combined with inference-time scaling, evaluated on GSM8K first.
 
-To separate what SFT and RL each contribute, the main model family is **OLMo 2 1B**, which
-releases every post-training stage. **Qwen2.5-0.5B** (Base vs. Instruct) is the second family.
+To separate what SFT and RL each contribute, we use **OLMo 2 1B**, which releases every
+post-training stage. (Qwen2.5-0.5B was dropped from the baselines after the smoke test.)
 
 | Family | Checkpoint | Post-training | Prompt |
 |---|---|---|---|
@@ -17,8 +17,6 @@ releases every post-training stage. **Qwen2.5-0.5B** (Base vs. Instruct) is the 
 | OLMo 2 1B | `allenai/OLMo-2-0425-1B-SFT` | SFT (Tülu 3 mix, includes math CoT) | chat template |
 | OLMo 2 1B | `allenai/OLMo-2-0425-1B-DPO` | SFT + DPO | chat template |
 | OLMo 2 1B | `allenai/OLMo-2-0425-1B-Instruct` | SFT + DPO + RLVR (math) | chat template |
-| Qwen2.5 | `Qwen/Qwen2.5-0.5B` | none | plain `Question:/Answer:` |
-| Qwen2.5 | `Qwen/Qwen2.5-0.5B-Instruct` | SFT + DPO + GRPO (learned reward model) | chat template |
 
 ## Phase 1: baseline numbers on GSM8K (no new methods)
 
@@ -35,16 +33,31 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 - [x] Add maj@k (majority vote) to `evaluation/metrics.py`
 - [ ] Sampling backend for n > 1 (vLLM); the HF path drops to batch size 1 at n = 64
 - [x] Colab notebook (`notebooks/colab_baselines.ipynb`): smoke test + full runs, results on Drive
-- [ ] Smoke test: 50 questions per model, check outputs by eye, record real run times
+- [x] Smoke test: 50 questions per model, check outputs by eye, record real run times (results below)
+- [ ] Look at truncated outputs (Instruct: 10% hit 512 tokens): loops, or raise `max_new_tokens`?
+- [ ] `format_rate` undercounts chat models (needs >= 2 `a op b = c` equations; misses `2 (blue) + 1 (white) = 3`, `\frac`)
 
 ### Runs (greedy pass@1, max 512 new tokens)
 - [ ] OLMo 2 1B Base: zero-shot and 8-shot
 - [ ] OLMo 2 1B SFT: zero-shot chat
 - [ ] OLMo 2 1B DPO: zero-shot chat
 - [ ] OLMo 2 1B Instruct (RLVR): zero-shot chat
-- [ ] Qwen2.5-0.5B Base: zero-shot and 8-shot
-- [ ] Qwen2.5-0.5B Instruct: zero-shot chat
 - [ ] Sampling runs for pass@k and maj@k (size depends on the n = 64 decision below)
+
+### Smoke test (first 50 test problems, greedy, T4)
+
+| Run | strict | lenient | format | step acc | mean tokens | truncated | sec |
+|---|---|---|---|---|---|---|---|
+| OLMo Base 0-shot | 0.00 | 0.04 | 0.02 | 0.56 | 60 | 0.04 | 84 |
+| OLMo Base 8-shot | 0.26 | 0.26 | 0.74 | 0.81 | 91 | 0.04 | 178 |
+| OLMo SFT | 0.56 | 0.56 | 0.64 | 0.81 | 144 | 0.00 | 61 |
+| OLMo DPO | 0.58 | 0.60 | 0.60 | 0.89 | 176 | 0.04 | 88 |
+| OLMo Instruct (RLVR) | 0.56 | 0.60 | 0.54 | 0.89 | 197 | 0.10 | 93 |
+
+n = 50, so differences under ~10 points are noise. Model-card GSM8K: SFT 52.1, DPO 59.0, Instruct 68.3.
+Observations: Base answers zero-shot without any reasoning (the target for the Hewitt adapter);
+SFT sometimes writes Python code instead of reasoning (Tülu 3 has code-based math data) and
+must guess the program's output; Instruct sometimes copies the instruction ("The answer is N.").
 
 ### Analysis
 - [ ] Results table: strict / lenient accuracy, format rate, step accuracy, length, truncation
