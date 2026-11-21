@@ -1,6 +1,6 @@
 import importlib
 
-TASKS = ["arithmetic"]  # add "last_letter", "coin_flip" as they are implemented
+TASKS = ["arithmetic", "gsm8k"]  # add "last_letter", "coin_flip" as they are implemented
 
 
 def get_task(name):
