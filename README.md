@@ -183,8 +183,8 @@ On Base + zero-shot CoT (1,000 training questions, bounded DPO, lr 1e-4, 2 epoch
 | shuffled labels (control) | 35.4% | |
 | majority labels (label-free) | 37.6% | |
 | gold labels, seed 0 / seed 1 | 40.2% / 39.2% | 40.3% (p = 0.11 vs baseline) |
-| **RFT baseline: LoRA fine-tuned on the model's own correct samples (gold)** | **45.6%** (dev 51.5%; p < 0.0001 vs baseline) | |
-| **Label-free RFT: fine-tuned on samples agreeing with the model's own majority answer** | **41.4%** (dev 47.0%; p = 0.026) | |
+| **RFT baseline: LoRA fine-tuned on the model's own correct samples (gold)** | **45.6%** (dev 51.5%; p < 0.0001 vs baseline) | **43.7%** (p < 0.00001) |
+| **Label-free RFT: fine-tuned on samples agreeing with the model's own majority answer** | **41.4%** (dev 47.0%; p = 0.026) | **41.6%** (p = 0.003) |
 
 Gold vs shuffled on test500: +4.8, McNemar p = 0.037. A consistent but small gain (~+2) with gold labels that does not
 reach significance against the untrained baseline; the label-free version gives nothing on Base (majority labels were
