@@ -61,8 +61,8 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 |---|---|---|---|---|
 | 1 | Self-certainty best-of-N (Borda-weighted vote) | [Kang et al., NeurIPS 2025](https://arxiv.org/abs/2502.18581) | reasoning LLMs, with CoT | rescoring only (implemented) |
 | 2 | DeepConf offline (filter by local/lowest-window confidence, then vote) | [Fu et al., ICLR 2026](https://arxiv.org/abs/2508.15260) | Qwen3, GPT-OSS | rescoring only (implemented) |
-| 3 | Classifier-free guidance on the prompt | [Sanchez et al., ICML 2024](https://arxiv.org/abs/2306.17806) | Pythia, GPT-2, LLaMA (incl. small); GSM8K | low (implemented, running) |
-| 4 | Distillation contrastive decoding (dropout amateur, single model); original contrastive decoding reported to hurt small models | [Phan et al. 2024](https://arxiv.org/abs/2402.14874); [O'Brien & Lewis 2023](https://arxiv.org/abs/2309.09117) | LLaMA; GSM8K | low (implemented, running) |
+| 3 | Classifier-free guidance on the prompt | [Sanchez et al., ICML 2024](https://arxiv.org/abs/2306.17806) | Pythia, GPT-2, LLaMA (incl. small); GSM8K | done (hurts at 1B) |
+| 4 | Distillation contrastive decoding (dropout amateur, single model); original contrastive decoding reported to hurt small models | [Phan et al. 2024](https://arxiv.org/abs/2402.14874); [O'Brien & Lewis 2023](https://arxiv.org/abs/2309.09117) | LLaMA; GSM8K | done (hurts at 1B) |
 | 5 | EM-INF (per-step logit adjustment that lowers entropy) | [Agarwal et al., NeurIPS 2025](https://arxiv.org/abs/2505.15134) | Qwen 7B/32B | low–medium |
 | 6 | EAGer / entropy-gated branching (branch only at high-entropy tokens) | [EAGer 2025](https://arxiv.org/abs/2510.11170); [Entropy-gated branching](https://arxiv.org/abs/2503.21961) | small LLMs, +4.6% over greedy | medium |
 | 7 | Thought-level self-certainty maximization (pick the most certain continuation per step) | [arXiv 2603.07159](https://arxiv.org/abs/2603.07159) | GSM8K/MATH500; up to 4× greedy on Qwen-1.5B | medium |
@@ -84,7 +84,8 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 | Forced "Let's" / "First," | 33.0% / 31.0% | 113 / 136 |
 | Budget forcing (zero-shot CoT + one "Wait") | 30.0% | 340 |
 | Repetition penalty 1.2 only | 9.5% | 41 |
-| CFG on zero-shot CoT, γ = 1.25 / 1.5 (γ = 1.0 control: 41.0%) | 36.5% / 27.5% | 101 / 103 |
+| CFG on zero-shot CoT, γ = 1.25 / 1.5 / 2.0 (γ = 1.0 control: 41.0%) | 36.5% / 27.5% / 14.5% | 101–132 |
+| Contrastive decoding (dropout-0.2 amateur) on zero-shot CoT, β = 0.25 / 0.5 (β = 0 control: 40.5%) | 31.0% / 25.0% | 126 / 132 |
 | Self-consistency without the CoT prefix (n = 10) | 10.0% | 588 |
 | DoLa (high / low layers, ± repetition penalty) | 5.0–6.5% | 105–141 |
 
