@@ -31,7 +31,8 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 - [x] Verifier: accept `\boxed{N}`, `#### N`, markdown bold and LaTeX (`$`, `\times`) in answers and equations
 - [x] Log generated length and the share of outputs that hit `max_new_tokens`
 - [x] Add maj@k (majority vote) to `evaluation/metrics.py`
-- [ ] Sampling backend for n > 1 (vLLM); the HF path drops to batch size 1 at n = 64
+- [x] Sampling backend for n > 1: `--backend vllm` (vLLM 0.9.2, env `implicit-vllm`, see README); the HF
+      path drops to batch size 1 at n = 64. `--subset 500` = fixed 500-problem test subset (seed 0)
 - [x] Colab notebook (`notebooks/colab_baselines.ipynb`): smoke test + full runs, results on Drive
 - [x] Smoke test: 50 questions per model, check outputs by eye, record real run times (results below)
 - [x] Look at truncated outputs: Base truncations are repetition loops; DPO/Instruct truncations are long
@@ -92,6 +93,30 @@ must guess the program's output; Instruct sometimes copies the instruction ("The
 - [ ] Inference-time scaling ideas: fork-aware decoding (raise temperature / branch at high-entropy tokens),
       DTR-weighted answer selection, encouraging deep tokens during decoding
 
+### vLLM backend check (RTX 3090, GPU 1 shared with other jobs at ~95% use, `--gpu_memory_utilization 0.35`)
+
+Greedy, first 100 test problems; "same" = identical output text.
+
+| Run | HF bs 64 (saved) lenient | HF bs 1 lenient | vLLM lenient | same: vLLM vs HF bs 64 | same: HF bs 1 vs HF bs 64 |
+|---|---|---|---|---|---|
+| OLMo Base 0-shot | 0.09 | 0.08 | 0.10 | 0.70 | 0.75 |
+| OLMo SFT | 0.54 | 0.57 | 0.56 | 0.55 | 0.54 |
+
+vLLM differs from HF about as much as HF at batch 64 differs from HF at batch 1 (bf16 + padding), so the
+differences are numerical near-ties, not a prompt/stop bug (inputs are identical token ids).
+
+Sampling n = 64, T = 0.8, first 50 problems of the 500 subset:
+
+| Run | pass@1 | pass@16 | pass@64 | maj@16 | maj@64 | mean tokens | gen sec | wall sec |
+|---|---|---|---|---|---|---|---|---|
+| OLMo Base 0-shot | 0.063 | 0.480 | 0.720 | 0.12 | 0.16 | 65 | 71 | 104 |
+| OLMo Base 8-shot | 0.213 | 0.719 | 0.860 | 0.42 | 0.46 | 79 | 95 | n/a |
+| OLMo Instruct (RLVR) | 0.644 | 0.891 | 0.920 | 0.78 | 0.76 | 172 | 193 | 226 |
+
+pass@k is lenient; wall includes ~30 s of vLLM startup. Estimate for 500 problems x n = 64: Base 0-shot
+~12 min, Base 8-shot ~16 min, SFT / DPO / Instruct ~28-32 min each, so ~2-2.5 h for all 5 configs on a
+shared GPU 1 at 0.35 memory (KV cache ~37k tokens; more memory = more concurrent sequences = faster).
+
 ## Rough compute (one L4, to be replaced by smoke-test timings)
 
 | Job | Per config | All configs |
@@ -99,10 +124,11 @@ must guess the program's output; Instruct sometimes copies the instruction ("The
 | Greedy pass@1 | ~5–15 min | ~1.5–2 h |
 | Sampling n = 16 (vLLM) | ~10–20 min | ~2–3 h |
 | Sampling n = 64 (vLLM) | ~40–60 min | ~6–8 h |
+| Sampling n = 64, 500-problem subset (vLLM 0.9.2, shared RTX 3090, measured on 50) | ~12–32 min | ~2–2.5 h |
 | Entropy / DTR pass on saved outputs | ~5–10 min | ~1 h |
 
 ## Open decisions
 
 - [ ] **Sampling budget:** n = 64 on the full test set, n = 64 on a fixed 500-problem subset, or n = 16 only
-- [ ] GPU and environment for the full runs: Colab for now; GCP L4 for sampling runs? vLLM installable?
+- [ ] GPU and environment for the full runs: Colab for now; GCP L4 for sampling runs? (vLLM works on the lab 3090s, env `implicit-vllm`)
 - [ ] 8-shot for the post-trained models too, or zero-shot chat only
