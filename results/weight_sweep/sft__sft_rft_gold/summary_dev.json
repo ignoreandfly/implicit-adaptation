@@ -1,0 +1,21 @@
+{
+  "a": "olmo2-1b-sft",
+  "b": "/data/azfarm/siddhant_fork_lora/sft_rft_gold",
+  "split": "dev",
+  "results": {
+    "1.0": {
+      "acc": 0.755,
+      "trunc": 0.0,
+      "tokens": 131.77
+    },
+    "1.5": {
+      "error": "y, this process has 2.25 GiB memory in use. Of the allocated memory 1.90 GiB is allocated by PyTorch, and 101.81 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+    },
+    "2.0": {
+      "error": "ry, this process has 2.13 GiB memory in use. Of the allocated memory 1.79 GiB is allocated by PyTorch, and 97.82 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+    },
+    "3.0": {
+      "error": "ry, this process has 2.13 GiB memory in use. Of the allocated memory 1.79 GiB is allocated by PyTorch, and 97.82 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+    }
+  }
+}
