@@ -49,7 +49,7 @@ def solutions(r):
     return r["outputs"], r["scores"]
 
 
-def build(rows, tok, fmt, label, max_len, prefix, n_problems, trim):
+def build(rows, tok, fmt, label, max_len, prefix, n_problems, trim, rft=False):
     """Select mid-difficulty problems, compute advantages, tokenize, trim long rollouts (select_mid_pool + prepare)."""
     stats, cands = Counter(), []
     for qi, r in enumerate(rows):
@@ -65,7 +65,9 @@ def build(rows, tok, fmt, label, max_len, prefix, n_problems, trim):
             stats["majority_correct"] += int(maj == r["answer"]); stats["labelled"] += 1
             rew = [float(s["lenient_answer"] == maj) for s in scores]
         mu = float(np.mean(rew))
-        if mu in (0.0, 1.0):
+        if rft and mu > 0:      # RFT-matched data: every problem with a correct solution, incl. all-correct ones
+            pass
+        elif mu in (0.0, 1.0):
             stats["skipped_uniform"] += 1
             continue
         n_trunc = sum(bool(s.get("truncated")) for s in scores)
@@ -80,11 +82,15 @@ def build(rows, tok, fmt, label, max_len, prefix, n_problems, trim):
         mu, sd = float(np.mean(rew)), max(float(np.std(rew)), 1e-8)
         prompt = prompts.build_prompt(fmt, r["question"], [], tok)
         p_ids = tok(prompt, add_special_tokens=(fmt == "plain")).input_ids
+        seen = set()
         for o, rw in zip(outs, rew):
+            if rft and (rw < 0.5 or o in seen):   # RFT: correct solutions only, deduplicated, weight 1
+                continue
+            seen.add(o)
             body = o[len(prefix.strip()):].lstrip() if prefix and o.startswith(prefix.strip()) else o
             text = ((prefix + " " + body) if prefix else (" " + o)) + "\n\n" if fmt == "plain" else o + tok.eos_token
             t_ids = tok(text, add_special_tokens=False).input_ids
-            ex.append({"ids": (p_ids + t_ids)[:max_len], "P": len(p_ids), "A": (rw - mu) / sd, "q": qi,
+            ex.append({"ids": (p_ids + t_ids)[:max_len], "P": len(p_ids), "A": 1.0 if rft else (rw - mu) / sd, "q": qi,
                        "pos": rw > 0.5})
     stats["problems"] = len(cands)
     stats["rollouts_selected"] = len(ex)
@@ -107,7 +113,7 @@ def main():
     ap.add_argument("--trim", type=float, default=0.8, help="keep this fraction of the shortest selected rollouts")
     ap.add_argument("--tau", type=float, default=1.4, help="absolute entropy threshold (nats) for decision points")
     ap.add_argument("--tau_pct", type=float, default=None, help="if set, use this percentile of entropies instead")
-    ap.add_argument("--gate", choices=["entropy", "margin"], default="entropy",
+    ap.add_argument("--gate", choices=["entropy", "margin", "all"], default="entropy",
                     help="decision points by reference entropy > tau (ReasonMaxxer) or by reference top-2 probability "
                          "margin < --margin_thr (our fork criterion)")
     ap.add_argument("--margin_thr", type=float, default=0.2)
@@ -124,6 +130,9 @@ def main():
     ap.add_argument("--rank", type=int, default=32)
     ap.add_argument("--shuffle", action="store_true", help="shuffle instead of the clarity curriculum")
     ap.add_argument("--positive_only", action="store_true", help="ablation: drop negative rollouts (= gated RFT)")
+    ap.add_argument("--rft_weights", action="store_true",
+                    help="RFT-matched data: all problems with >=1 correct solution, correct solutions only "
+                         "(deduplicated), advantage 1; use with --n_problems 0 --trim 1 --max_steps 0")
     ap.add_argument("--save_every", type=int, default=0, help="save the LoRA adapter every N optimizer steps")
     ap.add_argument("--max_len", type=int, default=1024)
     ap.add_argument("--limit", type=int, default=None)
@@ -135,7 +144,8 @@ def main():
     hf_id, fmt = resolve(args.model, args.format)
     tok = AutoTokenizer.from_pretrained(hf_id)
     rows = read_jsonl(f"{args.gens}/{args.split}.generations.jsonl")[: args.limit]
-    ex, stats = build(rows, tok, fmt, args.label, args.max_len, args.prefix, args.n_problems, args.trim)
+    ex, stats = build(rows, tok, fmt, args.label, args.max_len, args.prefix, args.n_problems, args.trim,
+                      args.rft_weights)
     if args.positive_only:
         ex = [e for e in ex if e["A"] > 0]
     print(f"{len(ex)} rollouts; stats {dict(stats)}", flush=True)
@@ -155,13 +165,17 @@ def main():
     # teacher-forced reference statistics at response positions (score_rollouts.py); score: higher = more decision-like
     for e in tqdm(ex, desc="score reference", mininterval=30):
         lr = ref_logp(torch.tensor([e["ids"]], device="cuda"))[e["P"] - 1:]
-        if args.gate == "entropy":
+        if args.gate == "all":
+            e["S"] = torch.ones(lr.shape[0])
+        elif args.gate == "entropy":
             e["S"] = (-(lr.exp() * lr).sum(-1)).cpu()
         else:
             top = lr.exp().topk(2, -1).values
             e["S"] = -(top[:, 0] - top[:, 1]).cpu()          # negative top-2 margin
     allS = torch.cat([e["S"] for e in ex]).numpy()
-    if args.share is not None:
+    if args.gate == "all":
+        tau = 0.0
+    elif args.share is not None:
         tau = float(np.percentile(allS, 100 * (1 - args.share)))
     elif args.gate == "entropy":
         tau = args.tau if args.tau_pct is None else float(np.percentile(allS, args.tau_pct))
