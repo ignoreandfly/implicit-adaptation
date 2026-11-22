@@ -12,3 +12,11 @@ logs/
 .env
 .env.*
 !.env.example
+
+# local tooling, large artifacts
+.claude/
+runs/
+*.npz
+results/**/*.rescored.jsonl
+results/qwen2.5-0.5b/
+results/summary.csv

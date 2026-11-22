@@ -36,6 +36,61 @@ data/        downloaded splits (gitignored)
 results/     generations + metrics per run
 ```
 
+## Inference-time methods
+
+We screen training-free methods on OLMo 2 1B Base (zero-shot, GSM8K dev split, 200 problems)
+with `methods/run.py`, then move the ones that beat the baselines to the test set and the other
+stages. Most of these were shown on 7B–120B models; testing them at 1B is the point.
+Status: **done** = results in `results/screen/`, **running** = current batch, **next** = queued after it.
+
+### Current batch
+
+| Method | Paper | Shown on | Status |
+|---|---|---|---|
+| CoT-decoding (branch on top-k first tokens, pick by answer confidence) | [Wang & Zhou 2024](https://arxiv.org/abs/2402.10200) | PaLM-2, Mistral-7B, Gemma-7B | done |
+| Zero-shot CoT ("Let's think step by step.") and forced first token | [Kojima et al. 2022](https://arxiv.org/abs/2205.11916) | GPT-3-scale | done |
+| DoLa (contrast final vs. early layer) | [Chuang et al. 2024](https://arxiv.org/abs/2309.03883); may hurt reasoning per [Shi et al. 2024](https://arxiv.org/abs/2402.06925) | LLaMA 7B–65B | done (hurts at 1B) |
+| Budget forcing ("Wait" when the model stops) | [Muennighoff et al. 2025 (s1)](https://arxiv.org/abs/2501.19393) | Qwen-32B | done (hurts at 1B) |
+| Self-consistency (majority vote over samples) | [Wang et al. 2023](https://arxiv.org/abs/2203.11171) | large models | running |
+| Think@n (vote among the top half of samples by deep-thinking ratio) | [Chen et al. 2026](https://arxiv.org/abs/2602.13517) | 20B–120B | running (`methods/rescore.py`) |
+| Fork-aware temperature sampling (our adaptation of the fork-token finding) | idea from [Wang et al. 2025](https://arxiv.org/abs/2506.01939) | — | running; to be replaced by EAGer |
+
+### Next (from the literature)
+
+| # | Method | Paper | Shown on | Cost |
+|---|---|---|---|---|
+| 1 | Self-certainty best-of-N (Borda-weighted vote) | [Kang et al., NeurIPS 2025](https://arxiv.org/abs/2502.18581) | reasoning LLMs, with CoT | rescoring only (implemented) |
+| 2 | DeepConf offline (filter by local/lowest-window confidence, then vote) | [Fu et al., ICLR 2026](https://arxiv.org/abs/2508.15260) | Qwen3, GPT-OSS | rescoring only (implemented) |
+| 3 | Classifier-free guidance on the prompt | [Sanchez et al., ICML 2024](https://arxiv.org/abs/2306.17806) | Pythia, GPT-2, LLaMA (incl. small); GSM8K | low (implemented, running) |
+| 4 | Distillation contrastive decoding (dropout amateur, single model); original contrastive decoding reported to hurt small models | [Phan et al. 2024](https://arxiv.org/abs/2402.14874); [O'Brien & Lewis 2023](https://arxiv.org/abs/2309.09117) | LLaMA; GSM8K | low (implemented, running) |
+| 5 | EM-INF (per-step logit adjustment that lowers entropy) | [Agarwal et al., NeurIPS 2025](https://arxiv.org/abs/2505.15134) | Qwen 7B/32B | low–medium |
+| 6 | EAGer / entropy-gated branching (branch only at high-entropy tokens) | [EAGer 2025](https://arxiv.org/abs/2510.11170); [Entropy-gated branching](https://arxiv.org/abs/2503.21961) | small LLMs, +4.6% over greedy | medium |
+| 7 | Thought-level self-certainty maximization (pick the most certain continuation per step) | [arXiv 2603.07159](https://arxiv.org/abs/2603.07159) | GSM8K/MATH500; up to 4× greedy on Qwen-1.5B | medium |
+| 8 | Power sampling (MCMC on the sharpened base distribution; base matches GRPO) | [Karan & Du, ICLR 2026](https://arxiv.org/abs/2510.14901); cheaper: [token-level](https://arxiv.org/abs/2601.21590), [entropy-guided](https://arxiv.org/abs/2606.09926) | Qwen2.5 base models; MATH500 | high (needs vLLM) |
+| 9 | CoT steering vector (add a "think step by step" direction to the residual stream) | [Zhang & Viteri 2024](https://arxiv.org/abs/2409.14026); SAE-free: [2505.15634](https://arxiv.org/abs/2505.15634) | Llama3-8B, Mistral-7B | low–medium |
+| 10 | φ-Decoding (foresight sampling) | [Xu et al., ACL 2025](https://arxiv.org/abs/2503.13288) | LLaMA3.1-8B, +14% over CoT | high |
+| — | Hewitt et al. rule-based adapter | [Hewitt et al. 2024](https://arxiv.org/abs/2409.14254) | Llama-2 7B, OLMo 7B | after the above |
+
+### Screening results so far (OLMo 2 1B Base, GSM8K dev, 200 problems, lenient accuracy)
+
+| Method | Acc. | Tokens / problem |
+|---|---|---|
+| Greedy zero-shot (baseline) | 9.5% | 40 |
+| Greedy 8-shot (prompting reference) | 38.5% | 73 |
+| **Zero-shot CoT** ("Let's think step by step.") | **41.0%** | 123 |
+| CoT-decoding, k = 10, aggregated confidence | 40.0% | 829 |
+| CoT-decoding, k = 10, max confidence | 29.5% | 829 |
+| Forced "Let's" / "First," | 33.0% / 31.0% | 113 / 136 |
+| Budget forcing (zero-shot CoT + one "Wait") | 30.0% | 340 |
+| Repetition penalty 1.2 only | 9.5% | 41 |
+| DoLa (high / low layers, ± repetition penalty) | 5.0–6.5% | 105–141 |
+
+With n = 200 the standard error is about ±3.5 points. Zero-shot CoT is now the baseline the
+remaining methods must beat; they run on top of its prefix. Metrics: `results/screen/olmo2-1b-base/dev/`.
+
+Worth checking directly at 1B: whether contrastive decoding and DoLa hurt small models, and
+whether DTR (which does not predict correctness on our greedy outputs) works within a problem.
+
 ## Running on Colab
 
 `notebooks/colab_baselines.ipynb` runs a 50-question smoke test per model, then the full test
