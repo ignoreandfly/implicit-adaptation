@@ -48,6 +48,30 @@ CUDA_VISIBLE_DEVICES=<idx> $HPY -m train.decision_lora \
 ```
 Priority, if time is short: `RUNS="margin05 entropy05 rft_ref"`, then `all margin20`.
 
+**Two GPUs on this machine?** Split the runs: start the script once with `GPU=a RUNS="rft_ref margin05 margin20"` and
+once with `GPU=b RUNS="all entropy05"`. Start the second only after the first has finished sampling, so both don't sample:
+wait for `results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.7_n8/train.generations.jsonl`.
+Use two identical GPU models if possible, and keep all of these runs on this one machine (one pipeline).
+
+## Second job (optional, another GPU): does RL-step extrapolation hold at 7B?
+New result on the main machine (full test, same pipeline). Training-free weight extrapolation past the RL model,
+theta = DPO + alpha·(Instruct − DPO), gives **69.9% at alpha = 1.5 vs 67.6% for 1B Instruct (paired p = 0.020)**.
+alpha = 1.5 was chosen on dev before the test was run; dev values were 78.0 / 78.5 / 80.5 / 82.5 / 79.0 / 76.5 for
+alpha = 0.5 / 1 / 1.25 / 1.5 / 1.75 / 2. Extrapolating SFT→DPO only hurts, so the effect is specific to the RL step.
+Does it hold at 7B?
+```bash
+# needs ~100 GB CPU RAM (three fp32 7B state dicts) and a GPU with >= 20 GB free; models download to the HF cache (~60 GB)
+# 1) choose alpha on dev (200 questions)
+CUDA_VISIBLE_DEVICES=<idx> $HPY -m analysis.weight_sweep --gpu <idx> --a olmo2-7b-dpo --b olmo2-7b-instruct \
+  --alphas 1 1.25 1.5 2 --split dev --tag 7b_dpo__instruct --scratch <fast disk>/ws7b_tmp
+# 2) the dev-best alpha and alpha = 1 (Instruct) on the FULL test, same pipeline
+$HPY -m analysis.weight_sweep --gpu <idx> --a olmo2-7b-dpo --b olmo2-7b-instruct --alphas <best> 1 --split test \
+  --tag 7b_dpo__instruct_fulltest --scratch <fast disk>/ws7b_tmp
+```
+`analysis/weight_sweep.py` evaluates with `methods.run` (HF greedy, batch 2). A 7B full test is slow, a few hours.
+If it is too slow, run step 2 with `--split test500` first. Report the paired McNemar test, as for 1B.
+If RAM is short, tell the main session; a streaming (per-tensor) version of the sweep would be needed.
+
 ## Pitfalls (learned the hard way; see RUNBOOK §4)
 - Launch with `setsid nohup … &`. Wait on a PID or a file. Never use `pgrep -f`/`pkill -f` patterns that match your own shell.
 - On a shared GPU, memory changes between checking and loading. The script waits for free memory and retries evals.
