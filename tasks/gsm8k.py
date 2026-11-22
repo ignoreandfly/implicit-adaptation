@@ -61,6 +61,8 @@ def normalize_number(s):
         x = float(s)
     except ValueError:
         return None
+    if x != x or x in (float("inf"), float("-inf")):  # NaN, or a digit string too long for a float
+        return None
     return str(int(x)) if x == int(x) else repr(x)
 
 
