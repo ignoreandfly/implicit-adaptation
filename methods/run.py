@@ -92,6 +92,7 @@ def main():
     ap.add_argument("--rl_scope", choices=["fork", "all"], default="fork")
     ap.add_argument("--rl_fork_thr", type=float, default=None)
     ap.add_argument("--rl_swaps", type=int, default=0, help="use the M most frequent SFT->Instruct swaps as rules")
+    ap.add_argument("--rl_bias_json", default=None, help="route 2: bias table from analysis/self_rules.py")
     ap.add_argument("--rl_oracle", action="store_true")
     ap.add_argument("--rl_oracle_model", default="olmo2-1b-instruct")
     args = ap.parse_args()

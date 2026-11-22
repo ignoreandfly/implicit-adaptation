@@ -13,6 +13,11 @@ or always with --rl_scope all. No training, no prompt change.
 SFT and Instruct at those training positions: at a fork, if SFT's greedy token is a and b is in
 SFT's top-5, emit b. (RL's choice is SFT's 2nd choice ~72% of the time, so swaps are local.)
 
+--rl_bias_json PATH: route 2 (no RL model): a bias table derived from the model's OWN samples by
+analysis/self_rules.py (log-odds of fork tokens in majority-agreeing vs disagreeing samples on
+training problems). Greedy on log p + beta * clip(LOR, -2, 2) at forks, and on the first response
+token with the separate first-token table.
+
 --rl_oracle: upper bound for any fork-gated rule. Decode with SFT, but at fork positions take the
 Instruct model's greedy token instead (two models in lock-step).
 beta = 0 is the control (plain SFT greedy through the same decoding loop).
@@ -28,6 +33,9 @@ from methods.common import make_path, manual_decode, single_path_summary
 
 
 def tag(args):
+    if args.rl_bias_json:
+        import os
+        return f"self_{os.path.basename(args.rl_bias_json).replace('.json', '')}_b{args.rl_beta}_{args.rl_scope}"
     if args.rl_swaps:
         return f"swaps{args.rl_swaps}_{args.rl_scope}"
     if args.rl_oracle:
@@ -80,6 +88,17 @@ def run(model, tok, texts, answers, task, args, ends):
         expert = AutoModelForCausalLM.from_pretrained(resolve(args.rl_oracle_model)[0], torch_dtype=torch.bfloat16).cuda().eval()
         return _oracle(model, expert, tok, texts, answers, task, args, ends, thr, stats)
 
+    self_first = None
+    if args.rl_bias_json:
+        sj = json.load(open(args.rl_bias_json))
+        r = torch.zeros(V, device="cuda")
+        for w, v in sj["bias"].items():
+            r[int(w)] = args.rl_beta * max(-2.0, min(2.0, v))
+        self_first = torch.zeros(V, device="cuda")
+        for w, v in sj["first_bias"].items():
+            self_first[int(w)] = args.rl_beta * max(-2.0, min(2.0, v))
+        thr = args.rl_fork_thr or sj["fork_thr"]
+        print(f"self rules: {len(sj['bias'])} fork tokens, {len(sj['first_bias'])} first tokens, fork H>{thr:.3f}", flush=True)
     swaps = load_swaps(tok, args.rl_table, args.rl_swaps) if args.rl_swaps else {}
     if swaps:
         print("swap rules:", [(tok.decode([a]), tok.decode([b])) for a, b in swaps.items()], flush=True)
@@ -99,6 +118,11 @@ def run(model, tok, texts, answers, task, args, ends):
             return nxt
         if args.rl_beta == 0:
             return lp.argmax(-1)
+        if self_first is not None:
+            H = -(lp.exp() * lp).sum(-1, keepdim=True)
+            gate = (H > thr).float() if args.rl_scope == "fork" else torch.ones_like(H)
+            first = torch.tensor([[1.0] if not g else [0.0] for g in gen], device=lp.device)
+            return (lp + (1 - first) * gate * r + first * self_first).argmax(-1)
         if args.rl_scope == "all":
             gate = torch.ones(lp.shape[0], 1, device=lp.device)
         else:

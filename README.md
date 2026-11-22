@@ -125,6 +125,23 @@ than half the time and can hurt otherwise ([When SC Hurts](https://arxiv.org/abs
 | oracle@10 | 66.0% |
 | SFT / DPO / Instruct greedy (from full-test runs) | 60.4% / 59.0% / 67.8% |
 
+### SFT vs RL: inference compute vs. sparse fork decisions (500 test problems unless noted)
+
+| Samples (T = 0.7, majority vote) | 1 | 4 | 16 | 64 | pass@64 |
+|---|---|---|---|---|---|
+| OLMo 2 1B SFT | 49.8% | 59.6% | **73.6%** | **75.8%** | 93.8% |
+| OLMo 2 1B Instruct (SFT+DPO+RLVR) | 66.6% | 72.4% | 75.2% | 76.6% | 95.6% |
+
+Greedy: SFT 60.4%, Instruct 67.8%. SFT with 16-sample voting passes RL greedy; RL's edge shrinks from
+17 points (1 sample) to 0.8 (64 samples) — the ability is in SFT, RL mostly makes the first answer good.
+
+Where RL changes SFT (`analysis/rl_delta.py`, SFT's greedy solutions to 300 training problems): the greedy
+token differs at only 7.8% of positions (4.4% for the RLVR stage alone), 83–94% of them fork tokens, and
+RL's choice is SFT's 2nd choice 72–80% of the time. On dev (200): SFT 72.0%, Instruct 79.0%; taking
+Instruct's token **only at forks** (~21% of positions) gives 77.5% — 79% of the gap. Lexical rules derived
+from these differences (swap pairs, token-bias tables) all hurt (62.5–69.5%): rules must depend on what
+the model computes at a fork, not on word identity (in progress: `analysis/fork_features.py`).
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
