@@ -158,6 +158,16 @@ Adaptive stopping on the saved 1B SFT samples (test500, 20 random orders; stop w
 is ahead by m votes): m = 2 -> 72.4% at 8.0 samples on average (fixed 8: 69.5%); m = 3 -> 74.6% at 13.0
 (fixed 32: 74.4%). RL greedy is 67.8%. Next: combine adaptive stopping with fork branching, and at 7B.
 
+Adaptive stopping at both scales (saved n = 64 samples, test500, stop when the leading answer is 2 votes ahead):
+7B SFT 88.7% at 3.8 samples on average (7B Instruct greedy 83.2%; 7B Instruct adaptive 89.3% at 3.1);
+1B SFT 72.4% at 8.0 samples (1B Instruct greedy 67.8%).
+
+Stage ladder in ReasonMaxxer's format (1B, SFT's greedy solutions to 300 training problems; % of positions where
+the later stage's greedy token differs, inside / outside the earlier stage's top-5): SFT→DPO 5.96% / 0.12%;
+DPO→Instruct (RLVR alone) 4.31% / 0.05%; SFT→Instruct 7.55% / 0.28%; 83–94% at fork tokens.
+(ReasonMaxxer, Qwen2.5-1.5B base→GRPO: 2.09% / 0.02%.) DPO changes more decisions than RLVR; neither stage
+chooses tokens outside the earlier model's top-5.
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
