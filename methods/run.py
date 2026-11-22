@@ -24,7 +24,7 @@ from evaluation.generate import stop_ids
 from evaluation.metrics import aggregate
 from tasks import get_task
 
-METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc"]
+METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc"]
 
 
 def main():
@@ -69,6 +69,10 @@ def main():
     # tlsc: thought-level self-certainty (uses --temperature for candidates)
     ap.add_argument("--tlsc_k", type=int, default=4)
     ap.add_argument("--tlsc_steps", type=int, default=40)
+    # power_smc (uses --n as the number of particles N)
+    ap.add_argument("--smc_alpha", type=float, default=4.0)
+    ap.add_argument("--smc_kappa", type=float, default=0.5)
+    ap.add_argument("--smc_ramp", type=int, default=100)
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
