@@ -76,6 +76,7 @@ def main():
     # rule_adapter (Hewitt-style rules; see methods/rule_adapter.py)
     ap.add_argument("--ra_stop_pen", type=float, default=5.0)
     ap.add_argument("--ra_end_bonus", type=float, default=5.0)
+    ap.add_argument("--ra_min_len", type=int, default=-1, help="stop penalty only before this many tokens (-1: until answered)")
     ap.add_argument("--ra_step_bonus", type=float, default=1.0)
     ap.add_argument("--ra_drift_pen", type=float, default=4.0)
     ap.add_argument("--ra_first_digit_pen", type=float, default=5.0)

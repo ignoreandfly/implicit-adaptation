@@ -112,6 +112,23 @@ Context for small models: majority vote helps only on questions where the model 
 than half the time and can hurt otherwise ([When SC Hurts](https://arxiv.org/abs/2611.11201),
 [SLM-MUX](https://arxiv.org/abs/2510.05077)); our dev gain is an average over both regimes.
 
+### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
+
+`analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
+zero-shot-CoT samples include both correct and incorrect solutions, how often does each model
+assign higher per-token probability to a correct sample than to an incorrect one (all pairs)?
+
+| Model | Prefers correct reasoning |
+|---|---|
+| OLMo 2 1B Base | 67.1% |
+| SFT | 68.9% |
+| DPO | 70.9% |
+| Instruct (RLVR) | 72.1% |
+
+The base model already discriminates its correct from its incorrect reasoning nearly as well
+as the post-trained models (cf. Hewitt et al.: base 80.4% vs. instruction-tuned 77.4%). Against
+another question's solution (Hewitt's exact test) all four models are at 88–94%.
+
 Worth checking directly at 1B: whether contrastive decoding and DoLa hurt small models, and
 whether DTR (which does not predict correctness on our greedy outputs) works within a problem.
 

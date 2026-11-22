@@ -1,0 +1,25 @@
+{
+  "natural_run": "results/screen/olmo2-1b-base/dev/sample_prefix-let-s-think-step-by-step_T0.7_n10",
+  "results": {
+    "olmo2-1b-base": {
+      "natural_sum": 0.5925782148608235,
+      "natural_mean": 0.6712799056820795,
+      "problems": 138
+    },
+    "olmo2-1b-sft": {
+      "natural_sum": 0.6077153784219,
+      "natural_mean": 0.6894570968484012,
+      "problems": 138
+    },
+    "olmo2-1b-dpo": {
+      "natural_sum": 0.6200992063492063,
+      "natural_mean": 0.7089613526570049,
+      "problems": 138
+    },
+    "olmo2-1b-instruct": {
+      "natural_sum": 0.6493849206349206,
+      "natural_mean": 0.7212911203128595,
+      "problems": 138
+    }
+  }
+}

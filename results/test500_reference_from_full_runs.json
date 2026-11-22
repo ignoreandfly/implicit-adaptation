@@ -1,0 +1,27 @@
+{
+  "olmo2-1b-base/gsm8k/0shot": {
+    "acc_lenient": 0.094,
+    "mean_gen_tokens": 60.286,
+    "n": 500
+  },
+  "olmo2-1b-base/gsm8k/8shot": {
+    "acc_lenient": 0.322,
+    "mean_gen_tokens": 89.536,
+    "n": 500
+  },
+  "olmo2-1b-sft/gsm8k/0shot": {
+    "acc_lenient": 0.604,
+    "mean_gen_tokens": 149.044,
+    "n": 500
+  },
+  "olmo2-1b-dpo/gsm8k/0shot": {
+    "acc_lenient": 0.59,
+    "mean_gen_tokens": 168.624,
+    "n": 500
+  },
+  "olmo2-1b-instruct/gsm8k/0shot": {
+    "acc_lenient": 0.678,
+    "mean_gen_tokens": 170.486,
+    "n": 500
+  }
+}

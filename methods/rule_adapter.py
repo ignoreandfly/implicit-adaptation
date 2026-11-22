@@ -6,8 +6,9 @@ Instruction Tuning", Sec. 6): a product of experts with the base model,
 where r is a sum of hand-written rule scores. No training, no prompt change (the plain
 "Question: ...\\nAnswer:" prompt). Rules mirror Hewitt's three, adapted to reasoning:
 
-  stop   (Hewitt's EOS rule)  until the response contains a finished answer statement
-         ("answer is N." with the number closed by a full stop),
+  stop   (Hewitt's EOS rule)  for the first --ra_min_len tokens (or, with -1, until the response
+         contains a finished answer statement
+         "answer is N." with the number closed by a full stop),
          stopping tokens (EOS and any token containing a newline) get -stop_pen; afterwards
          EOS and blank-line tokens get +end_bonus, so the model ends right after answering.
   shift  (Hewitt's uniform token changes)  +step_bonus on step connectives
@@ -42,7 +43,7 @@ ANSWERED_RE = re.compile(r"answer is\s*:?\s*\$?\s*-?\d[\d,]*(?:\.\d+)?\s*\.(?!\d
 def tag(args):
     off = ("_off-" + args.ra_off.replace(",", "-")) if args.ra_off else ""
     return (f"s{args.ra_stop_pen}_e{args.ra_end_bonus}_b{args.ra_step_bonus}_d{args.ra_drift_pen}"
-            f"_f{args.ra_first_digit_pen}_fs{args.ra_first_step_bonus}_r{args.ra_rep_pen}_n{args.ra_ngram_pen}{off}")
+            f"_ml{args.ra_min_len}_f{args.ra_first_digit_pen}_fs{args.ra_first_step_bonus}_r{args.ra_rep_pen}_n{args.ra_ngram_pen}{off}")
 
 
 def _single_ids(tok, words):
@@ -90,7 +91,7 @@ def run(model, tok, texts, answers, task, args, ends):
             if "stop" not in off:
                 if ANSWERED_RE.search(text):
                     r[b, end_mask] += args.ra_end_bonus
-                else:
+                elif args.ra_min_len < 0 or len(ids) < args.ra_min_len:
                     r[b, stop_mask] -= args.ra_stop_pen
             if "first" not in off and not text.strip():  # until the first non-space token
                 r[b, digit_first] -= args.ra_first_digit_pen

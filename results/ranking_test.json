@@ -1,0 +1,86 @@
+{
+  "split": "train",
+  "n": 500,
+  "seed": 0,
+  "results": {
+    "olmo2-1b-base": {
+      "random_sum": {
+        "rate": 0.882,
+        "n": 500
+      },
+      "random_mean": {
+        "rate": 0.946,
+        "n": 500
+      },
+      "corrupted_sum": {
+        "rate": 1.0,
+        "n": 500
+      },
+      "final_sum": {
+        "rate": 1.0,
+        "n": 500
+      }
+    },
+    "olmo2-1b-sft": {
+      "random_sum": {
+        "rate": 0.932,
+        "n": 500
+      },
+      "random_mean": {
+        "rate": 0.95,
+        "n": 500
+      },
+      "corrupted_sum": {
+        "rate": 1.0,
+        "n": 500
+      },
+      "final_sum": {
+        "rate": 1.0,
+        "n": 500
+      }
+    },
+    "olmo2-1b-dpo": {
+      "random_sum": {
+        "rate": 0.936,
+        "n": 500
+      },
+      "random_mean": {
+        "rate": 0.954,
+        "n": 500
+      },
+      "corrupted_sum": {
+        "rate": 1.0,
+        "n": 500
+      },
+      "final_sum": {
+        "rate": 1.0,
+        "n": 500
+      }
+    },
+    "olmo2-1b-instruct": {
+      "random_sum": {
+        "rate": 0.902,
+        "n": 500
+      },
+      "random_mean": {
+        "rate": 0.936,
+        "n": 500
+      },
+      "corrupted_sum": {
+        "rate": 1.0,
+        "n": 500
+      },
+      "final_sum": {
+        "rate": 1.0,
+        "n": 500
+      }
+    }
+  },
+  "example": {
+    "q": "Hayes does 3 loads of laundry a week using a detergent pod for each load.  His detergent pods come 39 to a pack.  How many packs of detergent pods will he need to do a full year of laundry?",
+    "s": "He uses 3 detergent pods a week and there are 52 weeks in a year, so he uses 3*52 = 156. His detergent has 39 pods per pack and he needs 156 pods, so he will need 156/39 = 4 packs of detergent pods. Therefore, the answer is 4.",
+    "rand": "After Jeff comes by, Tim has 22-6=16 cans left. Tim buys 16/2=8 more cans. Tim has 16+8=24 cans in the end. Therefore, the answer is 24.",
+    "corr": "He uses 3 detergent pods a week and there are 52 weeks in a year, so he uses 3*52 = 159. His detergent has 39 pods per pack and he needs 156 pods, so he will need 156/39 = 4 packs of detergent pods. Therefore, the answer is 4.",
+    "final": "He uses 3 detergent pods a week and there are 52 weeks in a year, so he uses 3*52 = 156. His detergent has 39 pods per pack and he needs 156 pods, so he will need 156/39 = 4 packs of detergent pods. Therefore, the answer is 5."
+  }
+}

@@ -9,6 +9,12 @@ question than to a wrong one?  For each GSM8K question q with reference solution
              model must prefer correct arithmetic / reasoning, not just on-topic text)
   final      p(s | q) > p(s^ | q), s^ = s with only the final answer number changed
 
+  natural    (--natural RUN_DIR) p(correct sample | q) > p(incorrect sample | q), over all
+             (correct, incorrect) pairs of the base model's OWN sampled solutions to the same
+             question (e.g. the self-consistency run). The corrupted/final negatives above are
+             too easy: one changed number makes the solution contradict its own later steps.
+             Per problem the pairwise win rate is averaged, then averaged over problems.
+
 p(. | q) is the summed log-probability of the solution tokens (Hewitt's comparison); for the
 random negative we also report the per-token mean, since lengths differ. Base models use the
 plain "Question: q\\nAnswer: s" format, post-trained models their chat template.
@@ -61,6 +67,40 @@ def score(model, tok, prompt, resp, fmt):
     return float(tl.sum()), float(tl.mean())
 
 
+def natural_pairs(run_dir, split="dev", max_problems=None):
+    """Problems whose sampled solutions include both correct and incorrect ones."""
+    out = []
+    for r in read_jsonl(f"{run_dir}/{split}.generations.jsonl"):
+        good = list({x["output"] for x in r["paths"] if x["score"]["lenient_correct"]})
+        bad = list({x["output"] for x in r["paths"] if not x["score"]["lenient_correct"] and not x.get("truncated")})
+        if good and bad:
+            out.append({"q": r["question"], "good": good, "bad": bad})
+    return out[:max_problems]
+
+
+def run_natural(args):
+    items = natural_pairs(args.natural, args.natural_split)
+    print(f"{len(items)} problems with both correct and incorrect samples", flush=True)
+    out = {}
+    for name in args.models:
+        hf_id, fmt = resolve(name)
+        tok = AutoTokenizer.from_pretrained(hf_id)
+        model = AutoModelForCausalLM.from_pretrained(hf_id, torch_dtype=torch.bfloat16).cuda().eval()
+        per_sum, per_mean = [], []
+        for it in items:
+            prompt = prompts.build_prompt(fmt, it["q"], [], tok)
+            g = [score(model, tok, prompt, x, fmt) for x in it["good"]]
+            b = [score(model, tok, prompt, x, fmt) for x in it["bad"]]
+            per_sum.append(np.mean([gs > bs for gs, _ in g for bs, _ in b]))
+            per_mean.append(np.mean([gm > bm for _, gm in g for _, bm in b]))
+        out[name] = {"natural_sum": float(np.mean(per_sum)), "natural_mean": float(np.mean(per_mean)),
+                     "problems": len(items)}
+        print(name, {k: round(v, 3) if isinstance(v, float) else v for k, v in out[name].items()}, flush=True)
+        del model
+        torch.cuda.empty_cache()
+    write_json(args.out, {"natural_run": args.natural, "results": out})
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="+", default=["olmo2-1b-base", "olmo2-1b-sft", "olmo2-1b-dpo", "olmo2-1b-instruct"])
@@ -68,7 +108,11 @@ def main():
     ap.add_argument("--n", type=int, default=500)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="results/ranking_test.json")
+    ap.add_argument("--natural", default=None, help="run dir with multi-sample generations (natural negatives)")
+    ap.add_argument("--natural_split", default="dev")
     args = ap.parse_args()
+    if args.natural:
+        return run_natural(args)
 
     rng = random.Random(args.seed)
     rows = rng.sample(read_jsonl(f"data/gsm8k/{args.split}.jsonl"), args.n)
