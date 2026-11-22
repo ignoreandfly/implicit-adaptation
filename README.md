@@ -7,7 +7,7 @@ rule-based adapter, combined with inference-time scaling, can bring out step-by-
 reasoning in models of 1B parameters or fewer, and how close it gets to models that went
 through SFT and RL.
 
-We evaluate on GSM8K first. Task list and open decisions: [ROADMAP.md](ROADMAP.md).
+We evaluate on GSM8K first. To continue experiments on another GPU or machine, see [RUNBOOK.md](RUNBOOK.md). Task list and open decisions: [ROADMAP.md](ROADMAP.md).
 
 ## Models
 
