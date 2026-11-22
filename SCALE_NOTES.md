@@ -22,6 +22,7 @@ Last updated: 2026-11-22.
 | Lexical "RL rules" on SFT (swap pairs, token-bias tables from Instruct − SFT) | All hurt (62.5–69.5% vs 72%, dev) | Probably a dead end as lexical rules at any scale; keep only as a baseline | — |
 | Single-pass fork rules from general features (post-choice entropy / margin) | Weak signal: AUROC ≈ 0.55 | Signals may sharpen with scale | `analysis/fork_features.py` on 7B SFT samples |
 | **Cross-scale proxy-tuning of the RL stage** | not run | Apply the 1B (Instruct − SFT) logit difference to **7B SFT** at decode time, i.e. "RL at 7B without RL" (open per literature) | Requires 7B SFT + 1B SFT + 1B Instruct on one GPU (~21 GB bf16) or 8-bit 7B |
+| Fork-gated MBR (branch 2nd token at the F closest-call / step-start forks, majority vote, ties to greedy) | Small gain on SFT dev: 71% → 73% at ~4–6x compute, almost no harm; but greedy + 8 branches contains the right answer 85–86% of the time: selection, not search, is the bottleneck | Whether label-free selection among branches becomes reliable at 7B (better calibration) — the key open question |
 | Fork-only oracle (Instruct's token at SFT forks) | 79% of the SFT→RL gap from ~21% of positions (dev) | Check whether RL's changes are even sparser / more fork-concentrated at 7B | `analysis/rl_delta.py` + oracle on 7B pair |
 
 ## Promising at 1B, to carry to 7B regardless
