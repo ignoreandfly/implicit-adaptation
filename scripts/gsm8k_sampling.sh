@@ -2,6 +2,7 @@
 # Phase 1 sampling runs (pass@k, maj@k) with the vLLM backend on the fixed 500-problem test subset.
 #   GPU=1 bash scripts/gsm8k_sampling.sh                   # n = 64, T = 0.8, 500 problems
 #   GPU=1 N=16 SUBSET=500 MEM=0.35 bash scripts/gsm8k_sampling.sh
+#   SPECS="olmo2-1b-sft:0 olmo2-1b-instruct:0" TEMP=0.7 bash scripts/gsm8k_sampling.sh
 # Needs the implicit-vllm env (README). Finished runs (test.metrics.json present) are skipped.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -16,7 +17,8 @@ ROOT=${ROOT:-results}
 DATA=${DATA:-data/gsm8k}
 
 fail=0
-for spec in olmo2-1b-base:0 olmo2-1b-base:8 olmo2-1b-sft:0 olmo2-1b-dpo:0 olmo2-1b-instruct:0; do
+SPECS=${SPECS:-"olmo2-1b-base:0 olmo2-1b-base:8 olmo2-1b-sft:0 olmo2-1b-dpo:0 olmo2-1b-instruct:0"}
+for spec in $SPECS; do
   model=${spec%:*}; shots=${spec#*:}
   out=$ROOT/$model/gsm8k/${shots}shot_sub${SUBSET}_n${N}_t${TEMP}
   if [ -f "$out/test.metrics.json" ]; then echo "done already: $out"; continue; fi
