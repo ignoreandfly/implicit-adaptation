@@ -52,15 +52,15 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 | DoLa (contrast final vs. early layer) | [Chuang et al. 2024](https://arxiv.org/abs/2309.03883); may hurt reasoning per [Shi et al. 2024](https://arxiv.org/abs/2402.06925) | LLaMA 7B–65B | done (hurts at 1B) |
 | Budget forcing ("Wait" when the model stops) | [Muennighoff et al. 2025 (s1)](https://arxiv.org/abs/2501.19393) | Qwen-32B | done (hurts at 1B) |
 | Self-consistency (majority vote over samples) | [Wang et al. 2023](https://arxiv.org/abs/2203.11171) | large models | running |
-| Think@n (vote among the top half of samples by deep-thinking ratio) | [Chen et al. 2026](https://arxiv.org/abs/2602.13517) | 20B–120B | running (`methods/rescore.py`) |
+| Think@n (vote among the top half of samples by deep-thinking ratio) | [Chen et al. 2026](https://arxiv.org/abs/2602.13517) | 20B–120B | done (hurts at 1B) |
 | Fork-aware temperature sampling (our adaptation of the fork-token finding) | idea from [Wang et al. 2025](https://arxiv.org/abs/2506.01939) | — | running; to be replaced by EAGer |
 
 ### Next (from the literature)
 
 | # | Method | Paper | Shown on | Cost |
 |---|---|---|---|---|
-| 1 | Self-certainty best-of-N (Borda-weighted vote) | [Kang et al., NeurIPS 2025](https://arxiv.org/abs/2502.18581) | reasoning LLMs, with CoT | rescoring only (implemented) |
-| 2 | DeepConf offline (filter by local/lowest-window confidence, then vote) | [Fu et al., ICLR 2026](https://arxiv.org/abs/2508.15260) | Qwen3, GPT-OSS | rescoring only (implemented) |
+| 1 | Self-certainty best-of-N (Borda-weighted vote) | [Kang et al., NeurIPS 2025](https://arxiv.org/abs/2502.18581) | reasoning LLMs, with CoT | done: 54.0% (best so far) |
+| 2 | DeepConf offline (filter by local/lowest-window confidence, then vote) | [Fu et al., ICLR 2026](https://arxiv.org/abs/2508.15260) | Qwen3, GPT-OSS | done: 52.0–52.5% |
 | 3 | Classifier-free guidance on the prompt | [Sanchez et al., ICML 2024](https://arxiv.org/abs/2306.17806) | Pythia, GPT-2, LLaMA (incl. small); GSM8K | done (hurts at 1B) |
 | 4 | Distillation contrastive decoding (dropout amateur, single model); original contrastive decoding reported to hurt small models | [Phan et al. 2024](https://arxiv.org/abs/2402.14874); [O'Brien & Lewis 2023](https://arxiv.org/abs/2309.09117) | LLaMA; GSM8K | done (hurts at 1B) |
 | 5 | EM-INF (per-step logit adjustment that lowers entropy) | [Agarwal et al., NeurIPS 2025](https://arxiv.org/abs/2505.15134) | Qwen 7B/32B | low–medium |
@@ -87,6 +87,9 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 | Greedy zero-shot (baseline) | 9.5% | 40 |
 | Greedy 8-shot (prompting reference) | 38.5% | 73 |
 | **Self-consistency on zero-shot CoT** (n = 10, T = 0.7, majority vote) | **51.0%** | 1308 |
+| Self-consistency + self-certainty Borda vote (Kang et al.) on the same 10 samples | 54.0% | 1308 |
+| Self-consistency + DeepConf filter (keep top 90%, confidence-weighted vote) | 52.0–52.5% | 1308 |
+| Self-consistency + Think@n (top half by deep-thinking ratio, then vote) | 39.5–42.5% | 1308 |
 | Zero-shot CoT ("Let's think step by step.") | 41.0% | 123 |
 | CoT-decoding, k = 10, aggregated confidence | 40.0% | 829 |
 | CoT-decoding, k = 10, max confidence | 29.5% | 829 |
