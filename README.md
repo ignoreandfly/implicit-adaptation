@@ -77,16 +77,21 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 |---|---|---|
 | Greedy zero-shot (baseline) | 9.5% | 40 |
 | Greedy 8-shot (prompting reference) | 38.5% | 73 |
-| **Zero-shot CoT** ("Let's think step by step.") | **41.0%** | 123 |
+| **Self-consistency on zero-shot CoT** (n = 10, T = 0.7, majority vote) | **51.0%** | 1308 |
+| Zero-shot CoT ("Let's think step by step.") | 41.0% | 123 |
 | CoT-decoding, k = 10, aggregated confidence | 40.0% | 829 |
 | CoT-decoding, k = 10, max confidence | 29.5% | 829 |
 | Forced "Let's" / "First," | 33.0% / 31.0% | 113 / 136 |
 | Budget forcing (zero-shot CoT + one "Wait") | 30.0% | 340 |
 | Repetition penalty 1.2 only | 9.5% | 41 |
+| CFG on zero-shot CoT, γ = 1.25 / 1.5 (γ = 1.0 control: 41.0%) | 36.5% / 27.5% | 101 / 103 |
+| Self-consistency without the CoT prefix (n = 10) | 10.0% | 588 |
 | DoLa (high / low layers, ± repetition penalty) | 5.0–6.5% | 105–141 |
 
-With n = 200 the standard error is about ±3.5 points. Zero-shot CoT is now the baseline the
-remaining methods must beat; they run on top of its prefix. Metrics: `results/screen/olmo2-1b-base/dev/`.
+With n = 200 the standard error is about ±3.5 points. Zero-shot CoT is the cheap baseline the
+remaining methods must beat; they run on top of its prefix. **Self-consistency beats it by +10 points**
+(paired McNemar p = 0.004; maj@k: k=4 40.5%, k=6 48%, k=8 50.5%, k=10 51%; oracle@10 71%) at ~10x the
+tokens: the first "costly method that works", and the target for a rule-based (Hewitt-style) replication. Metrics: `results/screen/olmo2-1b-base/dev/`.
 
 Worth checking directly at 1B: whether contrastive decoding and DoLa hurt small models, and
 whether DTR (which does not predict correctness on our greedy outputs) works within a problem.
