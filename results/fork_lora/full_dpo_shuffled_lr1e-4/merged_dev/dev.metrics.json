@@ -1,14 +1,14 @@
 {
   "num_problems": 200,
   "samples_per_problem": 1,
-  "acc_strict": 0.085,
-  "acc_lenient": 0.63,
+  "acc_strict": 0.09,
+  "acc_lenient": 0.625,
   "format_rate": 0.1,
-  "mean_steps": 2.64,
-  "step_acc": 0.8181818181818182,
-  "mean_gen_tokens": 147.085,
+  "mean_steps": 2.6,
+  "step_acc": 0.8153846153846154,
+  "mean_gen_tokens": 145.405,
   "truncation_rate": 0.015,
-  "acc_chosen": 0.63,
+  "acc_chosen": 0.625,
   "method": "rl_rules",
   "model": "/data/azfarm/siddhant_fork_lora/full_dpo_shuffled_lr1e-4",
   "split": "dev",
@@ -22,7 +22,7 @@
     "few_shot": 0,
     "limit": null,
     "max_new_tokens": 512,
-    "batch_problems": 4,
+    "batch_problems": 2,
     "seed": 0,
     "tag": null,
     "out": "results/fork_lora/full_dpo_shuffled_lr1e-4/merged_dev",
@@ -75,6 +75,6 @@
     "fm_chunk": 32,
     "fmt": "chat"
   },
-  "seconds": 157.8,
-  "git": "1a16e09599cda5d59bacd73fa04774cd5e2dc7ee"
+  "seconds": 150.7,
+  "git": "7d460710a48cb094fe0517c2900b105d1c0f5ad5"
 }
