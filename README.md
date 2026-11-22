@@ -132,8 +132,10 @@ than half the time and can hurt otherwise ([When SC Hurts](https://arxiv.org/abs
 |---|---|---|---|---|---|
 | OLMo 2 1B SFT | 49.8% | 59.6% | **73.6%** | **75.8%** | 93.8% |
 | OLMo 2 1B Instruct (SFT+DPO+RLVR) | 66.6% | 72.4% | 75.2% | 76.6% | 95.6% |
+| OLMo 2 7B SFT | 80.4% | **86.6%** | 89.4% | 90.2% | 98.6% |
+| OLMo 2 7B Instruct (SFT+DPO+RLVR) | 84.2% | 87.4% | 90.0% | 90.8% | 98.6% |
 
-Greedy: SFT 60.4%, Instruct 67.8%. SFT with 16-sample voting passes RL greedy; RL's edge shrinks from
+Greedy: 1B SFT 60.4% / Instruct 67.8%; 7B SFT 74.6% / Instruct 83.2%. At 7B, SFT with only 4 samples (86.6%) passes RL greedy, and RL's edge at 64 samples is 0.6 points. At 1B, SFT with 16-sample voting passes RL greedy; RL's edge shrinks from
 17 points (1 sample) to 0.8 (64 samples) — the ability is in SFT, RL mostly makes the first answer good.
 
 Where RL changes SFT (`analysis/rl_delta.py`, SFT's greedy solutions to 300 training problems): the greedy
