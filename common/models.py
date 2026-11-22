@@ -13,6 +13,11 @@ MODELS = {
     "olmo2-1b-sft": ("allenai/OLMo-2-0425-1B-SFT", "chat"),
     "olmo2-1b-dpo": ("allenai/OLMo-2-0425-1B-DPO", "chat"),
     "olmo2-1b-instruct": ("allenai/OLMo-2-0425-1B-Instruct", "chat"),  # SFT + DPO + RLVR
+    # OLMo 2 7B (Nov 2024), same stage ladder; weights cached under /data/azfarm/siddhant_hf_cache
+    "olmo2-7b-base": ("allenai/OLMo-2-1124-7B", "plain"),
+    "olmo2-7b-sft": ("allenai/OLMo-2-1124-7B-SFT", "chat"),
+    "olmo2-7b-dpo": ("allenai/OLMo-2-1124-7B-DPO", "chat"),
+    "olmo2-7b-instruct": ("allenai/OLMo-2-1124-7B-Instruct", "chat"),
 }
 
 
