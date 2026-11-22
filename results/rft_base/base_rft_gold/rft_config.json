@@ -1,0 +1,154 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.7_n8",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "lr": 0.0001,
+    "epochs": 2,
+    "accum": 8,
+    "rank": 32,
+    "max_len": 640,
+    "seed": 0,
+    "out": "/mnt/swordfish-pool2/sb5435/fork_lora/base_rft_gold"
+  },
+  "train_solutions": 2162,
+  "log": [
+    {
+      "step": 20,
+      "epoch": 0,
+      "loss": 0.20355632901191711
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "loss": 0.12727883458137512
+    },
+    {
+      "step": 60,
+      "epoch": 0,
+      "loss": 0.5035285353660583
+    },
+    {
+      "step": 80,
+      "epoch": 0,
+      "loss": 0.15631113946437836
+    },
+    {
+      "step": 100,
+      "epoch": 0,
+      "loss": 0.2935236096382141
+    },
+    {
+      "step": 120,
+      "epoch": 0,
+      "loss": 0.443291038274765
+    },
+    {
+      "step": 140,
+      "epoch": 0,
+      "loss": 0.3746330142021179
+    },
+    {
+      "step": 160,
+      "epoch": 0,
+      "loss": 0.26239123940467834
+    },
+    {
+      "step": 180,
+      "epoch": 0,
+      "loss": 0.2079085409641266
+    },
+    {
+      "step": 200,
+      "epoch": 0,
+      "loss": 0.4672090709209442
+    },
+    {
+      "step": 220,
+      "epoch": 0,
+      "loss": 0.1377112716436386
+    },
+    {
+      "step": 240,
+      "epoch": 0,
+      "loss": 0.07010797411203384
+    },
+    {
+      "step": 260,
+      "epoch": 0,
+      "loss": 0.09401803463697433
+    },
+    {
+      "step": 280,
+      "epoch": 1,
+      "loss": 0.22230812907218933
+    },
+    {
+      "step": 300,
+      "epoch": 1,
+      "loss": 0.4082343578338623
+    },
+    {
+      "step": 320,
+      "epoch": 1,
+      "loss": 0.18645411729812622
+    },
+    {
+      "step": 340,
+      "epoch": 1,
+      "loss": 0.19675882160663605
+    },
+    {
+      "step": 360,
+      "epoch": 1,
+      "loss": 0.36050793528556824
+    },
+    {
+      "step": 380,
+      "epoch": 1,
+      "loss": 0.13578207790851593
+    },
+    {
+      "step": 400,
+      "epoch": 1,
+      "loss": 0.3235420882701874
+    },
+    {
+      "step": 420,
+      "epoch": 1,
+      "loss": 0.20207355916500092
+    },
+    {
+      "step": 440,
+      "epoch": 1,
+      "loss": 0.45151475071907043
+    },
+    {
+      "step": 460,
+      "epoch": 1,
+      "loss": 0.26431339979171753
+    },
+    {
+      "step": 480,
+      "epoch": 1,
+      "loss": 0.3040972054004669
+    },
+    {
+      "step": 500,
+      "epoch": 1,
+      "loss": 0.3471216857433319
+    },
+    {
+      "step": 520,
+      "epoch": 1,
+      "loss": 0.5663204789161682
+    },
+    {
+      "step": 540,
+      "epoch": 1,
+      "loss": 0.29918423295021057
+    }
+  ]
+}
