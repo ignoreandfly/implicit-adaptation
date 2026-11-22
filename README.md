@@ -143,6 +143,19 @@ Instruct's token **only at forks** (~21% of positions) gives 77.5% — 79% of th
 from these differences (swap pairs, token-bias tables) all hurt (62.5–69.5%): rules must depend on what
 the model computes at a fork, not on word identity (in progress: `analysis/fork_features.py`).
 
+### Positioning and the efficiency angle (2026-11-22, late)
+
+Closest prior work (verified): RL as sparse reranking at high-entropy decision points, with oracle
+interventions, down to 1.5B ([Rethinking RL: Sparse Policy Selection](https://arxiv.org/abs/2605.06241));
+base models reach RL behaviour with enough sampling budget ([Budgeted Search](https://arxiv.org/abs/2609.01274)).
+So "RL fixes a few forks" and "the earlier stage contains RL's answers" are not new by themselves. What is
+distinctive here: the full matched Base->SFT->DPO->RL ladder at 1B and 7B, and training-free *compute
+efficiency* (reaching RL-level accuracy with fewer samples).
+
+Adaptive stopping on the saved 1B SFT samples (test500, 20 random orders; stop when the leading answer
+is ahead by m votes): m = 2 -> 72.4% at 8.0 samples on average (fixed 8: 69.5%); m = 3 -> 74.6% at 13.0
+(fixed 32: 74.4%). RL greedy is 67.8%. Next: combine adaptive stopping with fork branching, and at 7B.
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
