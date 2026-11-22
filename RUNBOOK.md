@@ -126,3 +126,59 @@ Lessons so far: unbounded `--loss adv` at lr 1e-4 destroys the model; lr <= 2e-5
 Commit code and small metrics files (`results/**/*.metrics.json`, `summary.json`, `fork_lora_config.json`), never
 `data/`, generations, model weights or PDFs; end commit messages with the co-author line used in this repo. Add new
 numbers to the relevant README section, and failed-at-1B ideas to `SCALE_NOTES.md`.
+
+## 6. Running the 7B jobs on GCP (added 2026-11-23)
+
+The shared lab server rarely has a nearly free 24 GB GPU, so the 7B experiments are packaged as one script,
+`scripts/gcp_7b_jobs.sh`, for a dedicated cloud GPU. It is resumable (finished steps are skipped).
+
+**Machine.** For inference-only jobs (`sample judge fobar forkmbr`) an **L4 (24 GB)** is enough:
+`g2-standard-8`, about $0.85/h on demand (spot is roughly a third). For the 7B LoRA training steps (`rft`, the
+judge training inside `judge`) an **A100 40 GB** (`a2-highgpu-1g`, about $3.70/h on demand) is safer; 7B training
+on an L4 may run out of memory. Use a Deep Learning VM image (CUDA preinstalled) and a >= 200 GB disk.
+
+```bash
+# from a machine with gcloud installed and authenticated (gcloud auth login; gcloud config set project <ID>)
+gcloud compute instances create olmo-7b \
+  --zone=us-central1-a --machine-type=a2-highgpu-1g \          # or g2-standard-8 for an L4
+  --accelerator=type=nvidia-tesla-a100,count=1 \               # or type=nvidia-l4,count=1
+  --image-family=common-cu124-ubuntu-2204-py310 --image-project=deeplearning-platform-release \
+  --boot-disk-size=200GB --maintenance-policy=TERMINATE \
+  --metadata=install-nvidia-driver=True
+  # add --provisioning-model=SPOT for ~1/3 of the price (can be preempted; the script is resumable)
+gcloud compute ssh olmo-7b --zone=us-central1-a
+```
+(Check GPU quota in the chosen region first; image family names change over time —
+`gcloud compute images list --project deeplearning-platform-release | grep cu12` lists current ones.)
+
+**On the VM:**
+```bash
+git clone git@github.com:ignoreandfly/implicit-adaptation.git && cd implicit-adaptation   # needs a deploy key or token
+# environments: RUNBOOK section 1 (two envs: hf and vllm)
+export HF_HUB_CACHE=$HOME/hf_cache
+VPY=~/miniconda3/envs/vllm/bin/python HPY=~/miniconda3/envs/hf/bin/python \
+  setsid nohup bash scripts/gcp_7b_jobs.sh > logs/gcp_7b.log 2>&1 < /dev/null &
+tail -f logs/gcp_7b.log
+```
+
+**What it runs, in order** (`JOBS="sample rft judge fobar forkmbr"`; pick a subset with `JOBS=...`):
+
+| Step | What | Time (L4 / A100, rough) | Compare against |
+|---|---|---|---|
+| `sample` | 7B SFT: 64 samples on test500 (selection pool) + 8 samples on 1,500 training questions | ~1 h / ~25 min | — |
+| `rft` | **Fine-tune 7B SFT on its own correct (gold) and majority-agreeing (label-free) samples**, greedy test500 | ~3 h / ~1 h | 7B SFT greedy 74.6%, 7B Instruct 83.2% |
+| `judge` | zero-shot vs trained pairwise self-judge, selection on the test500 pool (k = 4, 8, 16) | ~2 h / ~45 min | majority vote on the same pool |
+| `fobar` | backward verification on 7B sample pools (k = 8, 16) | ~40 min / ~20 min | majority vote |
+| `forkmbr` | fork-gated MBR on 7B SFT, test500 | ~4 h / ~1.5 h | its own greedy |
+
+Rough total: ~10 GPU-hours on an L4 or ~4 on an A100 (~$10–15 either way on demand; less on spot).
+
+**Results back**: commit the small files (`results/rft_sft7b/`, `results/judge/*.json`, `results/fobar/*7b*`,
+`results/screen/olmo2-7b-sft/test500/*/test500.metrics.json`) and push, or `gcloud compute scp` them back.
+Do not commit `checkpoints/` (merged 7B models are ~15 GB each) or generations.
+
+**Stop the VM when done** (`gcloud compute instances stop olmo-7b --zone=us-central1-a`; delete it to stop disk
+charges too) — an idle A100 still costs ~$3.70/h.
+
+1B reference numbers (same setup) are in README.md: Base + CoT RFT gold 43.7% / label-free 41.6% vs 38.1% (full
+test); trained 1B judge +2.2 over majority at k = 8 (only when the top-2 answers are within one vote).
