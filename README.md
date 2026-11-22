@@ -118,6 +118,7 @@ than half the time and can hurt otherwise ([When SC Hurts](https://arxiv.org/abs
 |---|---|
 | Base greedy zero-shot | 9.6% |
 | Base 8-shot (from full-test run) | 32.2% |
+| Base rule adapter, greedy (no prompt) / + voting (n = 10) | 29.2% / 37.8% |
 | Base zero-shot CoT | 37.0% |
 | **Base self-consistency (n = 10) on zero-shot CoT, majority** | **43.2%** (+6.2 vs zero-shot CoT, McNemar p = 0.002) |
 | … + self-certainty Borda vote / entropy-weighted vote / DeepConf | 43.6–44.4% (≈ majority; the +3 on dev did not hold) |
