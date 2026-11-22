@@ -129,6 +129,18 @@ The base model already discriminates its correct from its incorrect reasoning ne
 as the post-trained models (cf. Hewitt et al.: base 80.4% vs. instruction-tuned 77.4%). Against
 another question's solution (Hewitt's exact test) all four models are at 88–94%.
 
+### Future directions
+
+- **Run the winning methods on OLMo 2 1B SFT (and DPO / Instruct).** Majority vote only helps on
+  questions the model gets right more than half the time ([SLM-MUX](https://arxiv.org/abs/2510.05077));
+  SFT is right far more often than Base (60% vs 9% greedy), so self-consistency and confidence-based
+  aggregation may gain more there. Needs chat-template support in `methods/run.py` (plain format only today).
+- StepBack ([NeurIPS 2026](https://neurips.cc/virtual/2026/poster/149117); error-localized resampling,
+  then majority vote): reported to match self-consistency at fewer tokens on 3B Instruct models —
+  an efficiency method, not an accuracy gain; low priority.
+- A literature search found no paper showing a method that beats self-consistency at matched budget on
+  a <= 2B base model; a positive result there would be new.
+
 Worth checking directly at 1B: whether contrastive decoding and DoLa hurt small models, and
 whether DTR (which does not predict correctness on our greedy outputs) works within a problem.
 
