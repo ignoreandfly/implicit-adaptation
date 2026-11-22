@@ -24,16 +24,16 @@ done
 [ -f $S/train.generations.jsonl ] || { echo "sampling failed"; exit 1; }
 $HPY scripts/gens_to_paths.py $S/train.generations.jsonl $G/train.generations.jsonl
 for lab in gold majority; do
-  tag=sft_rft_$lab
+  tag=sft_rft_$lab; rtag=sft_rft_full7273_$lab   # results dir distinct from the 1,500-question run
   wait_mem 12000; echo "=== train $tag $(date)"
   $HPY -m train.rft_lora --gens $G --split train --model olmo2-1b-sft --label $lab --lr 1e-4 --epochs 1 \
     --out $OUT/$tag > $L/train_$tag.log 2>&1
   grep -E "training solutions" $L/train_$tag.log | tail -1
-  mkdir -p $R/$tag; cp $OUT/$tag/rft_config.json $R/$tag/ 2>/dev/null
+  mkdir -p $R/$rtag; cp $OUT/$tag/rft_config.json $R/$rtag/ 2>/dev/null
   for try in 1 2 3; do
     wait_mem 16000
     $VPY -m evaluation.generate --backend vllm --model $OUT/$tag --format chat --split dev --gpu_memory_utilization 0.3 \
-      --out $R/$tag/greedy_dev > $L/eval_${tag}_dev.log 2>&1 && break; sleep 120
+      --out $R/$rtag/greedy_dev > $L/eval_${tag}_dev.log 2>&1 && break; sleep 120
   done
   echo "  $tag dev $(grep -oE "'acc_lenient': [0-9.]+" $L/eval_${tag}_dev.log | tail -1)"
 done
