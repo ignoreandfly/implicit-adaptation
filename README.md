@@ -161,6 +161,8 @@ another question's solution (Hewitt's exact test) all four models are at 88–94
 
 ### Future directions
 
+- Ideas that failed or were inconclusive at 1B but may work at larger scale are tracked in [SCALE_NOTES.md](SCALE_NOTES.md).
+
 - **Run the winning methods on OLMo 2 1B SFT (and DPO / Instruct).** Majority vote only helps on
   questions the model gets right more than half the time ([SLM-MUX](https://arxiv.org/abs/2510.05077));
   SFT is right far more often than Base (60% vs 9% greedy), so self-consistency and confidence-based
