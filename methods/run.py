@@ -24,7 +24,7 @@ from evaluation.generate import stop_ids
 from evaluation.metrics import aggregate
 from tasks import get_task
 
-METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc", "rule_adapter", "rl_rules"]
+METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc", "rule_adapter", "rl_rules", "fork_mbr"]
 
 
 def main():
@@ -95,6 +95,10 @@ def main():
     ap.add_argument("--rl_bias_json", default=None, help="route 2: bias table from analysis/self_rules.py")
     ap.add_argument("--rl_oracle", action="store_true")
     ap.add_argument("--rl_oracle_model", default="olmo2-1b-instruct")
+    # fork_mbr (majority vote over greedy + branches at the F closest-call forks)
+    ap.add_argument("--fm_forks", type=int, default=4)
+    ap.add_argument("--fm_min_pos", type=int, default=0, help="ignore forks before this response position")
+    ap.add_argument("--fm_where", choices=["any", "step_start"], default="any")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
