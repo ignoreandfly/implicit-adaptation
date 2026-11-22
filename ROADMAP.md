@@ -42,11 +42,28 @@ Goal: report what each existing checkpoint does on the GSM8K test set (1,319 pro
 - [ ] `format_rate` undercounts chat models (needs >= 2 `a op b = c` equations; misses `2 (blue) + 1 (white) = 3`, `\frac`)
 
 ### Runs (greedy pass@1, max 512 new tokens)
-- [ ] OLMo 2 1B Base: zero-shot and 8-shot
-- [ ] OLMo 2 1B SFT: zero-shot chat
-- [ ] OLMo 2 1B DPO: zero-shot chat
-- [ ] OLMo 2 1B Instruct (RLVR): zero-shot chat
+- [x] OLMo 2 1B Base: zero-shot and 8-shot
+- [x] OLMo 2 1B SFT: zero-shot chat
+- [x] OLMo 2 1B DPO: zero-shot chat
+- [x] OLMo 2 1B Instruct (RLVR): zero-shot chat
 - [ ] Sampling runs for pass@k and maj@k (size depends on the n = 64 decision below)
+
+### Full test set (1,319 problems, greedy, RTX 3090, bf16)
+
+Run with `scripts/gsm8k_baselines.sh`; metrics in `results/olmo2-1b-*/gsm8k/`.
+
+| Run | strict | lenient | format | step acc | mean tokens | truncated | sec |
+|---|---|---|---|---|---|---|---|
+| OLMo Base 0-shot | 0.003 | 0.083 | 0.074 | 0.620 | 58 | 0.028 | 303 |
+| OLMo Base 8-shot | 0.326 | 0.328 | 0.788 | 0.800 | 86 | 0.033 | 1077 |
+| OLMo SFT | 0.582 | 0.594 | 0.732 | 0.818 | 149 | 0.014 | 547 |
+| OLMo DPO | 0.553 | 0.600 | 0.648 | 0.862 | 167 | 0.014 | 830 |
+| OLMo Instruct (RLVR) | 0.627 | 0.674 | 0.679 | 0.867 | 171 | 0.046 | 935 |
+
+95% CI is about ±2.7 points at n = 1,319. Lenient accuracy matches the model card for DPO (60.0 vs 59.0)
+and Instruct (67.4 vs 68.3); SFT is ~7 points above its card (59.4 vs 52.1), likely prompt/extraction
+differences. SFT gives the main jump over Base, DPO adds step accuracy but not accuracy, RLVR adds ~7 points.
+Times are with DPO, Instruct and 8-shot sharing one GPU, so they overstate single-run cost.
 
 ### Smoke test (first 50 test problems, greedy, T4)
 
