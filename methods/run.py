@@ -99,6 +99,7 @@ def main():
     ap.add_argument("--fm_forks", type=int, default=4)
     ap.add_argument("--fm_min_pos", type=int, default=0, help="ignore forks before this response position")
     ap.add_argument("--fm_where", choices=["any", "step_start"], default="any")
+    ap.add_argument("--fm_chunk", type=int, default=32, help="branch batch size (use ~8 for 7B models)")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)

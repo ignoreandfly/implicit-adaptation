@@ -92,8 +92,8 @@ def run(model, tok, texts, answers, task, args, ends):
                 branch_inputs.append(p_ids[i] + gen[i][:t] + [tops[i][t][1]])
                 owner.append((i, t))
         bgen = []
-        for c in range(0, len(branch_inputs), 32):  # branches in chunks to bound memory
-            bgen += _greedy(model, tok, branch_inputs[c:c + 32], args.max_new_tokens, ends, fmt)[0]
+        for c in range(0, len(branch_inputs), args.fm_chunk):  # branches in chunks to bound memory
+            bgen += _greedy(model, tok, branch_inputs[c:c + args.fm_chunk], args.max_new_tokens, ends, fmt)[0]
         per = {i: [] for i in range(len(batch))}
         for (i, t), g in zip(owner, bgen):
             per[i].append((t, gen[i][:t] + [tops[i][t][1]] + g, tops[i][t][2], len(g) + 1))
