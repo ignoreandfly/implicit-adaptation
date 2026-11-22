@@ -1,0 +1,81 @@
+{
+  "args": {
+    "pairs": "data/fork_pairs/olmo2-1b-sft_train1000.jsonl",
+    "model": "olmo2-1b-sft",
+    "label": "majority",
+    "shuffle": false,
+    "lr": 2e-05,
+    "epochs": 1,
+    "accum": 8,
+    "kl": 0.2,
+    "loss": "dpo",
+    "beta": 0.5,
+    "rank": 32,
+    "seed": 0,
+    "out": "/data/azfarm/siddhant_fork_lora/dpo_major_lr2e-5_b0.5"
+  },
+  "stats": {
+    "label_correct": 800,
+    "labelled": 1000,
+    "tie": 2453,
+    "pairs": 1547,
+    "prefer_2nd": 750
+  },
+  "train_forks": 1547,
+  "log": [
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": 0.3465735912322998,
+      "l_kl": 0.00014257495058700442
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "l_dec": 0.31629952788352966,
+      "l_kl": 0.0017565726302564144
+    },
+    {
+      "step": 60,
+      "epoch": 0,
+      "l_dec": 0.1655963510274887,
+      "l_kl": 0.00527620455250144
+    },
+    {
+      "step": 80,
+      "epoch": 0,
+      "l_dec": 0.1812213510274887,
+      "l_kl": 0.0018935471307486296
+    },
+    {
+      "step": 100,
+      "epoch": 0,
+      "l_dec": 0.12453363835811615,
+      "l_kl": 0.009575407020747662
+    },
+    {
+      "step": 120,
+      "epoch": 0,
+      "l_dec": 0.3311927020549774,
+      "l_kl": 0.0038547052536159754
+    },
+    {
+      "step": 140,
+      "epoch": 0,
+      "l_dec": 0.1655963510274887,
+      "l_kl": 0.004192594438791275
+    },
+    {
+      "step": 160,
+      "epoch": 0,
+      "l_dec": 0.31629952788352966,
+      "l_kl": 0.0038436357863247395
+    },
+    {
+      "step": 180,
+      "epoch": 0,
+      "l_dec": 0.3311927020549774,
+      "l_kl": 0.0
+    }
+  ]
+}
