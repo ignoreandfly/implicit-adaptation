@@ -24,11 +24,15 @@ where r is a sum of hand-written rule scores. No training, no prompt change (the
          -ngram_pen on any token that would repeat a 4-gram already in the response (catches the
          "26/2+6=26/2+6=..." loops that the word-level rule cannot).
 
+--ra_n N --temperature T: sample N responses per question from the rule-adapted distribution
+softmax((log p_base + r) / T) and take a majority vote (rules + self-consistency).
+
 --ra_off stop,shift,first,rep switches rules off (leave-one-out ablation, as in Hewitt Table 4).
 Rule weights are tuned on the dev split only (Hewitt tuned on a separate validation set).
 """
 
 import re
+from collections import Counter
 
 import torch
 
@@ -42,6 +46,8 @@ ANSWERED_RE = re.compile(r"answer is\s*:?\s*\$?\s*-?\d[\d,]*(?:\.\d+)?\s*\.(?!\d
 
 def tag(args):
     off = ("_off-" + args.ra_off.replace(",", "-")) if args.ra_off else ""
+    if args.ra_n > 1:
+        off += f"_n{args.ra_n}_T{args.temperature}"
     return (f"s{args.ra_stop_pen}_e{args.ra_end_bonus}_b{args.ra_step_bonus}_d{args.ra_drift_pen}"
             f"_ml{args.ra_min_len}_f{args.ra_first_digit_pen}_fs{args.ra_first_step_bonus}_r{args.ra_rep_pen}_n{args.ra_ngram_pen}{off}")
 
@@ -105,17 +111,34 @@ def run(model, tok, texts, answers, task, args, ends):
                     nxt = {ids[i + 3] for i in range(len(ids) - 3) if tuple(ids[i:i + 3]) == ctx}
                     if nxt:
                         r[b, torch.tensor(sorted(nxt), device=dev)] -= args.ra_ngram_pen
-        return (lp + r).argmax(-1)
+        z = lp + r
+        if args.ra_n > 1:
+            return torch.multinomial(torch.softmax(z / args.temperature, -1), 1).squeeze(-1)
+        return z.argmax(-1)
 
     res = []
-    bs = args.batch_problems * 8
+    k = max(1, args.ra_n)
+    bs = max(1, (args.batch_problems * 8) // k)
     for b in range(0, len(texts), bs):
-        batch = texts[b:b + bs]
+        batch = [t for t in texts[b:b + bs] for _ in range(k)]
         gen = manual_decode(model, tok, batch, args.max_new_tokens, step, ends)
-        for i, ids in enumerate(gen):
-            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens)], "chosen": 0})
-        print(f"{b + len(batch)}/{len(texts)}", flush=True)
+        for i in range(len(batch) // k):
+            paths = [make_path(tok, gen[i * k + j], task, answers[b + i], args.max_new_tokens) for j in range(k)]
+            votes = Counter(x["score"]["lenient_answer"] for x in paths if x["score"]["lenient_answer"] is not None)
+            top = votes.most_common(1)[0][0] if votes else None
+            chosen = next((j for j, x in enumerate(paths) if x["score"]["lenient_answer"] == top), 0)
+            res.append({"paths": paths, "chosen": chosen})
+        print(f"{min(b + bs, len(texts))}/{len(texts)}", flush=True)
     return res
 
 
-summarize = single_path_summary
+def summarize(results, answers):
+    n = len(results)
+    out = single_path_summary(results, answers)
+    if len(results[0]["paths"]) > 1:
+        out["acc_majority"] = out.pop("acc_chosen")
+        out["acc_single_sample"] = sum(sum(x["score"]["lenient_correct"] for x in r["paths"]) / len(r["paths"])
+                                       for r in results) / n
+        out["acc_oracle"] = sum(any(x["score"]["lenient_correct"] for x in r["paths"]) for r in results) / n
+        out["mean_tokens_all_paths"] = sum(x["gen_tokens"] for r in results for x in r["paths"]) / n
+    return out

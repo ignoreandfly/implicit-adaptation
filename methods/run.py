@@ -83,6 +83,7 @@ def main():
     ap.add_argument("--ra_first_step_bonus", type=float, default=3.0)
     ap.add_argument("--ra_rep_pen", type=float, default=1.5)
     ap.add_argument("--ra_ngram_pen", type=float, default=5.0)
+    ap.add_argument("--ra_n", type=int, default=1, help="samples per question (>1: sample + majority vote)")
     ap.add_argument("--ra_off", default="", help="comma list of rules to disable: stop,shift,first,rep")
     args = ap.parse_args()
 
