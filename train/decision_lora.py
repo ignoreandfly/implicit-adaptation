@@ -1,21 +1,28 @@
-"""Decision-point training, following ReasonMaxxer ("Rethinking RL for LLM Reasoning", arXiv 2605.06241, Sec. 5):
-advantage-weighted log-likelihood at the high-entropy decision points of the model's OWN full solutions (correct AND
-incorrect), with a KL anchor to the frozen starting model at all other response positions.
+"""Decision-point training, following ReasonMaxxer ("Rethinking RL for LLM Reasoning", arXiv 2605.06241) and its
+reference code (github.com/farukakgul/ReasonMaxxer, scripts/{select_mid_pool,prepare_training_data,
+train_reasonmaxxer}.py, example recipe examples/qwen25_1p5b/): advantage-weighted log-likelihood at the high-entropy
+decision points of the model's OWN solutions (correct AND incorrect), with a KL anchor to the frozen starting model at
+all other positions.
 
-    A_i   = clip((r_i - mean_q r) / (std_q r + eps), -2.5, 2.5)        per question q, over its solutions i
-    D_i   = response positions where the frozen model's next-token entropy > tau  (~top few % of positions)
-    L     = -(1/|D_i|) sum_{t in D_i} A_i log p_theta(x_t | x_<t)  +  lambda * mean_{t not in D_i} KL(p_ref || p_theta)
+    A_i   = clip((r_i - mean_q r) / pstd_q r, -2.5, 2.5)            per problem q, over its solutions i
+    D_i   = positions where the frozen model's next-token entropy > tau (absolute, nats; recipe: 1.4, sweep 1.0-2.2)
+    L     = -(1/|D|) sum_{t in D} A_i log p_theta(x_t | x_<t)  +  0.2 * mean_{t not in D} KL(p_ref || p_theta)
 
-Rewards r_i: --label gold (answer correct) or --label majority (answer equals the majority answer of the question's
-label samples if present, else of the solutions themselves: label-free). Following the paper, only questions with
-mixed outcomes (0 < mean r < 1) are used. tau is the --tau_pct percentile of reference entropies over a sample of
-response tokens. LoRA (rank 32, q/k/v/o) on the starting model; merged and saved as a full model.
+Recipe defaults reproduced here (their example: Qwen2.5-1.5B base, 300 problems x 20 rollouts at T 0.6 / top-p 0.95):
+  - problems: mixed outcomes only, the --n_problems (50) closest to a 0.5 pass rate (ties: fewer truncations, shorter)
+  - trim: keep the shortest --trim (80%) of the selected rollouts
+  - KL anchor over every non-decision position INCLUDING the prompt (their default; --kl_scope response to restrict)
+  - LoRA r32 / alpha 64 on q,k,v,o; lr 1e-4; warmup 50; grad accum 8; 2 epochs capped at --max_steps 149
+  - fixed curriculum order (no shuffle): rollouts sorted by signal clarity = |A| x (decision tokens / length)
+  - adapter checkpoints every --save_every optimizer steps (they select the best on 60 held-out problems; here use
+    train/merge_adapter.py + a dev eval to pick one)
+Deviation: the reference model is the policy with its adapter disabled (identical to their separate frozen copy).
 
-Input: generations with several solutions per question, in evaluation.generate format (outputs + scores) or
-methods.run format (paths), e.g. results/judge/olmo2-1b-sft_train1500_n8 or train/fork_branch_data.py output.
+Rewards r_i: --label gold (answer correct) or --label majority (answer equals the majority answer of the problem's
+label samples if present, else of its solutions: label-free; not in the paper).
 
-    python -m train.decision_lora --gens results/judge/olmo2-1b-sft_train1500_n8 --model olmo2-1b-sft \
-        --label majority --out /data/.../decision_sft_major
+    python -m train.decision_lora --gens results/explore/sft_train300_n20 --model olmo2-1b-sft --label gold \
+        --out checkpoints/explore/rmx_gold
 """
 
 import argparse
@@ -41,9 +48,10 @@ def solutions(r):
     return r["outputs"], r["scores"]
 
 
-def build(rows, tok, fmt, label, max_len, prefix):
-    ex, stats = [], Counter()
-    for r in rows:
+def build(rows, tok, fmt, label, max_len, prefix, n_problems, trim):
+    """Select mid-difficulty problems, compute advantages, tokenize, trim long rollouts (select_mid_pool + prepare)."""
+    stats, cands = Counter(), []
+    for qi, r in enumerate(rows):
         outs, scores = solutions(r)
         if label == "gold":
             rew = [float(s["lenient_correct"]) for s in scores]
@@ -59,19 +67,30 @@ def build(rows, tok, fmt, label, max_len, prefix):
         if mu in (0.0, 1.0):
             stats["skipped_uniform"] += 1
             continue
-        sd = float(np.std(rew))
+        n_trunc = sum(bool(s.get("truncated")) for s in scores)
+        avg_len = float(np.mean([len(o) for o in outs]))
+        cands.append((abs(mu - 0.5), n_trunc, avg_len, qi, rew))
+    cands.sort(key=lambda c: c[:4])
+    if n_problems > 0:
+        cands = cands[:n_problems]
+    ex = []
+    for _, _, _, qi, rew in cands:
+        r = rows[qi]; outs, scores = solutions(r)
+        mu, sd = float(np.mean(rew)), max(float(np.std(rew)), 1e-8)
         prompt = prompts.build_prompt(fmt, r["question"], [], tok)
         p_ids = tok(prompt, add_special_tokens=(fmt == "plain")).input_ids
-        for o, s, rw in zip(outs, scores, rew):
-            if s.get("truncated"):
-                continue
+        for o, rw in zip(outs, rew):
             body = o[len(prefix.strip()):].lstrip() if prefix and o.startswith(prefix.strip()) else o
             text = ((prefix + " " + body) if prefix else (" " + o)) + "\n\n" if fmt == "plain" else o + tok.eos_token
             t_ids = tok(text, add_special_tokens=False).input_ids
-            a = max(-2.5, min(2.5, (rw - mu) / (sd + 1e-6)))
-            ex.append({"ids": (p_ids + t_ids)[:max_len], "P": len(p_ids), "A": a})
-        stats["questions"] += 1
-    stats["sequences"] = len(ex)
+            ex.append({"ids": (p_ids + t_ids)[:max_len], "P": len(p_ids), "A": (rw - mu) / sd, "q": qi,
+                       "pos": rw > 0.5})
+    stats["problems"] = len(cands)
+    stats["rollouts_selected"] = len(ex)
+    ex.sort(key=lambda e: len(e["ids"]))
+    ex = ex[: int(round(trim * len(ex)))]
+    stats["rollouts_after_trim"] = len(ex)
+    stats["pos_rollouts"] = sum(e["pos"] for e in ex)
     return ex, stats
 
 
@@ -83,15 +102,25 @@ def main():
     ap.add_argument("--format", choices=["plain", "chat"], default=None)
     ap.add_argument("--prefix", default="", help="e.g. \" Let's think step by step.\" for base models")
     ap.add_argument("--label", choices=["gold", "majority"], default="gold")
-    ap.add_argument("--tau_pct", type=float, default=95.0, help="decision points = entropy above this percentile")
+    ap.add_argument("--n_problems", type=int, default=50, help="mixed-outcome problems closest to 0.5 pass rate (0 = all)")
+    ap.add_argument("--trim", type=float, default=0.8, help="keep this fraction of the shortest selected rollouts")
+    ap.add_argument("--tau", type=float, default=1.4, help="absolute entropy threshold (nats) for decision points")
+    ap.add_argument("--tau_pct", type=float, default=None, help="if set, use this percentile of entropies instead")
     ap.add_argument("--kl", type=float, default=0.2)
-    ap.add_argument("--lr", type=float, default=5e-5)
-    ap.add_argument("--epochs", type=int, default=1)
+    ap.add_argument("--kl_scope", choices=["all", "response"], default="all")
+    ap.add_argument("--adv_clip", type=float, default=2.5)
+    ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--epochs", type=int, default=2)
+    ap.add_argument("--max_steps", type=int, default=149)
+    ap.add_argument("--warmup", type=int, default=50)
     ap.add_argument("--accum", type=int, default=8)
     ap.add_argument("--rank", type=int, default=32)
-    ap.add_argument("--max_len", type=int, default=768)
+    ap.add_argument("--shuffle", action="store_true", help="shuffle instead of the clarity curriculum")
+    ap.add_argument("--positive_only", action="store_true", help="ablation: drop negative rollouts (= gated RFT)")
+    ap.add_argument("--save_every", type=int, default=0, help="save the LoRA adapter every N optimizer steps")
+    ap.add_argument("--max_len", type=int, default=1024)
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -99,8 +128,10 @@ def main():
     hf_id, fmt = resolve(args.model, args.format)
     tok = AutoTokenizer.from_pretrained(hf_id)
     rows = read_jsonl(f"{args.gens}/{args.split}.generations.jsonl")[: args.limit]
-    ex, stats = build(rows, tok, fmt, args.label, args.max_len, args.prefix)
-    print(f"{len(ex)} sequences; stats {dict(stats)}", flush=True)
+    ex, stats = build(rows, tok, fmt, args.label, args.max_len, args.prefix, args.n_problems, args.trim)
+    if args.positive_only:
+        ex = [e for e in ex if e["A"] > 0]
+    print(f"{len(ex)} rollouts; stats {dict(stats)}", flush=True)
 
     model = AutoModelForCausalLM.from_pretrained(hf_id, torch_dtype=torch.bfloat16).cuda()
     model.gradient_checkpointing_enable(); model.enable_input_require_grads()
@@ -112,48 +143,68 @@ def main():
 
     def ref_logp(ids):
         with torch.no_grad(), model.disable_adapter(), torch.autocast("cuda", dtype=torch.bfloat16):
-            return torch.log_softmax(model(ids).logits[0].float(), -1)
+            return torch.log_softmax(model(ids).logits[0, :-1].float(), -1)
 
-    # entropy threshold from a sample of reference response positions
-    hs = []
-    for e in random.sample(ex, min(200, len(ex))):
-        lr = ref_logp(torch.tensor([e["ids"]], device="cuda"))[e["P"] - 1:-1]
-        hs.append((-(lr.exp() * lr).sum(-1)).cpu().numpy())
-    tau = float(np.percentile(np.concatenate(hs), args.tau_pct))
-    print(f"decision threshold tau = {tau:.3f} nats ({args.tau_pct}th percentile)", flush=True)
+    # teacher-forced reference entropies at response positions (score_rollouts.py)
+    for e in ex:
+        lr = ref_logp(torch.tensor([e["ids"]], device="cuda"))[e["P"] - 1:]
+        e["H"] = (-(lr.exp() * lr).sum(-1)).cpu()
+    tau = args.tau if args.tau_pct is None else float(np.percentile(torch.cat([e["H"] for e in ex]).numpy(), args.tau_pct))
+    for e in ex:
+        e["D"] = e["H"] > tau
+        e["clarity"] = abs(e["A"]) * float(e["D"].float().mean())
+    dshare = float(np.mean([float(e["D"].float().mean()) for e in ex]))
+    print(f"tau = {tau:.3f} nats; decision share of response tokens = {dshare:.4f}", flush=True)
+    if not args.shuffle:
+        ex.sort(key=lambda e: -e["clarity"])
 
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(params, lr=args.lr, weight_decay=0.0)
-    total = math.ceil(len(ex) * args.epochs / args.accum); warm = max(1, total // 20)
-    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / warm) * max(0.0, 1 - s / max(1, total)))
-    model.train(); step = 0; log = []; dshare = []
+    total = min(math.ceil(len(ex) / args.accum) * args.epochs, args.max_steps or 10**9)
+    warm = max(0, min(args.warmup, total - 1))
+    sched = torch.optim.lr_scheduler.LambdaLR(
+        opt, lambda s: (s + 1) / max(1, warm) if s < warm else max(0.0, (total - s) / max(1, total - warm)))
+    out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+    model.train(); step = 0; log = []; n_micro = 0; done = False
     for ep in range(args.epochs):
-        order = list(range(len(ex))); random.shuffle(order)
-        for n, i in enumerate(order):
+        order = list(range(len(ex)))
+        if args.shuffle:
+            random.shuffle(order)
+        for i in order:
             e = ex[i]
             ids = torch.tensor([e["ids"]], device="cuda")
-            lr_ = ref_logp(ids)[e["P"] - 1:-1]
+            lr_ = ref_logp(ids)
             with torch.autocast("cuda", dtype=torch.bfloat16):
-                lq = torch.log_softmax(model(ids).logits[0].float(), -1)[e["P"] - 1:-1]
-            y = ids[0, e["P"]:]
-            H = -(lr_.exp() * lr_).sum(-1)
-            D = H > tau
-            dshare.append(float(D.float().mean()))
-            l_dec = -(e["A"] * lq.gather(-1, y[:, None]).squeeze(-1)[D]).mean() if D.any() else torch.zeros((), device="cuda")
-            nd = ~D
-            l_kl = (lr_.exp() * (lr_ - lq)).sum(-1)[nd].mean() if nd.any() else torch.zeros((), device="cuda")
+                lq = torch.log_softmax(model(ids).logits[0, :-1].float(), -1)
+            y = ids[0, 1:]
+            D = torch.zeros(len(y), dtype=torch.bool, device="cuda"); D[e["P"] - 1:] = e["D"].cuda()
+            a = max(-args.adv_clip, min(args.adv_clip, e["A"]))
+            l_dec = -(a * lq.gather(-1, y[:, None]).squeeze(-1)[D]).mean() if D.any() else torch.zeros((), device="cuda")
+            keep = ~D
+            if args.kl_scope == "response":
+                keep[: e["P"] - 1] = False
+            l_kl = (lr_.exp() * (lr_ - lq)).sum(-1)[keep].mean() if keep.any() else torch.zeros((), device="cuda")
             ((l_dec + args.kl * l_kl) / args.accum).backward()
-            if (n + 1) % args.accum == 0 or n == len(order) - 1:
+            n_micro += 1
+            if n_micro % args.accum == 0:
                 torch.nn.utils.clip_grad_norm_(params, 1.0); opt.step(); sched.step(); opt.zero_grad(set_to_none=True)
                 step += 1
-                if step % 25 == 0:
-                    rec = {"step": step, "l_dec": float(l_dec), "l_kl": float(l_kl), "decision_share": float(np.mean(dshare[-200:]))}
+                if step % 10 == 0:
+                    rec = {"step": step, "epoch": ep, "l_dec": float(l_dec), "l_kl": float(l_kl), "lr": sched.get_last_lr()[0]}
                     log.append(rec); print(rec, flush=True)
-    out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+                if args.save_every and step % args.save_every == 0:
+                    model.save_pretrained(out / f"adapter_step{step}")
+                if step >= total:
+                    done = True
+                    break
+        if done:
+            break
+    model.save_pretrained(out / f"adapter_step{step}")
     model.merge_and_unload().to(torch.bfloat16).save_pretrained(out, safe_serialization=True)
     tok.save_pretrained(out)
-    json.dump({"args": vars(args), "stats": dict(stats), "tau": tau, "log": log}, open(out / "decision_config.json", "w"), indent=2)
-    print(f"saved merged model to {out}", flush=True)
+    json.dump({"args": vars(args), "stats": dict(stats), "tau": tau, "decision_share": dshare, "steps": step,
+               "log": log}, open(out / "decision_config.json", "w"), indent=2)
+    print(f"saved merged model ({step} optimizer steps) to {out}", flush=True)
 
 
 if __name__ == "__main__":

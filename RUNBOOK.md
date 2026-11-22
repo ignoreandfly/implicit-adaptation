@@ -229,3 +229,5 @@ seed, and iterating RFT for a second round from the best model.
 
 **Results back:** commit `results/explore/eval/*/test.metrics.json`, `results/explore/*/train.metrics.json`, and the
 `*_config.json` files from `checkpoints/explore/*` (copy them into `results/explore/configs/`); never the checkpoints.
+
+**Update (2026-11-23 evening): `train/decision_lora.py` now follows the ReasonMaxxer reference code** (github.com/farukakgul/ReasonMaxxer): 50 mixed-outcome problems closest to a 0.5 pass rate, shortest 80% of rollouts, absolute entropy threshold tau = 1.4 nats, lr 1e-4, warmup 50, <= 149 optimizer steps, fixed signal-clarity curriculum, KL 0.2 over all non-decision positions incl. the prompt, adapter checkpoints via `--save_every`. The `decision` step trains on new recipe data (300 problems x 20 rollouts at T 0.6): tau sweep 1.0 / 1.4 / 2.2, label-free (majority), a positive-only ablation, and an all-problems variant. Pull before running.
