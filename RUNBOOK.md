@@ -184,3 +184,50 @@ charges too) — an idle A100 still costs ~$3.70/h.
 
 1B reference numbers (same setup) are in README.md: Base + CoT RFT gold 43.7% / label-free 41.6% vs 38.1% (full
 test); trained 1B judge +2.2 over majority at k = 8 (only when the top-2 answers are within one vote).
+
+## 7. 1B method exploration on another GPU machine (added 2026-11-23) — the current priority
+
+**Goal.** A training-light, 1x-inference method that moves OLMo 2 1B **SFT** (~60% on test500) toward the **RL model
+(Instruct, ~68%)**, ideally label-free. What we know (README.md): fine-tuning a LoRA on the model's own correct samples
+(RFT) works (SFT 59.8% → 63.4%; Base +5.6 on the full test, label-free +3.5); a single-token contrastive loss at fork
+tokens does not beat RFT; inference-time selectors barely beat majority vote. ReasonMaxxer (arXiv 2605.06241) reports
+that adding *negatives* at decision points roughly doubles the gain of positive-only training (= RFT) — untested on OLMo.
+
+**Where it runs.** Intended setup: Claude Code on a local PC drives a GCP VM through `gcloud` (create the VM as in section 6; for 1B a single L4 24 GB `g2-standard-8` or A100 40 GB `a2-highgpu-1g` is enough, ~100 GB disk). Then `gcloud compute ssh <vm> -- 'cd implicit-adaptation && …'`, launching with `nohup … &` (or inside `tmux`) so an ssh drop does not kill the run. Push results from the VM to GitHub (`git pull --rebase` first), and **stop the VM when done** (`gcloud compute instances stop <vm>`) so it stops using credits. The script itself needs no `gcloud` and runs on any GPU machine.
+
+**Script:** `scripts/gcp_1b_explore.sh` (resumable). Any single 24 GB+ GPU works for 1B. On a multi-GPU server, set `CUDA_VISIBLE_DEVICES` to a free GPU (check `nvidia-smi` first) and keep the default `MEM=0.85` only if that GPU is otherwise idle; lower it (e.g. `MEM=0.4`) on a shared GPU.
+
+```bash
+# on the VM, after RUNBOOK section 1 (envs + data/gsm8k incl. test500.jsonl)
+export CUDA_VISIBLE_DEVICES=0   # or a free GPU on a shared machine
+export VPY=~/miniconda3/envs/vllm/bin/python HPY=~/miniconda3/envs/hf/bin/python
+SMOKE=1 bash scripts/gcp_1b_explore.sh          # ~20 min: validates every step on 40 questions — do this first
+setsid nohup bash scripts/gcp_1b_explore.sh > logs/explore.log 2>&1 < /dev/null &   # full run
+```
+
+**What it runs** (3,000 training questions; all models evaluated greedily on test500 through one vLLM pipeline,
+including the SFT and Instruct references, so numbers are directly comparable):
+
+| Step | Models | Question |
+|---|---|---|
+| `data` | 16 SFT samples per question; greedy + 4 fork branches (+2 sampled continuations each) | — |
+| `rft` | `rft_gold`, `rft_majority` | baseline: positive-only self-training at this data size |
+| `decision` | `dec_{gold,majority}_lr{5e-5,2e-5}` — **direction 1**, faithful ReasonMaxxer: advantage-weighted loss at decision points (entropy > 95th percentile) of full correct AND incorrect samples, KL anchor elsewhere | do negatives add gain over RFT on OLMo? label-free too? |
+| `forkbranch` | `fb_rft_{gold,majority}` (RFT on corrected fork branches), `fb_dec_{gold,majority}` (branches positive, failing greedy negative) — **direction 2, ours** | are minimal on-policy corrections at forks better training data than random samples? |
+| `eval` | everything above + SFT + Instruct | test500 greedy accuracy |
+
+**Code status:** `train/decision_lora.py` and `train/fork_branch_data.py` are new; their data-building logic is tested,
+the GPU training/generation paths were not (the shared server had no free GPU memory) — that is what `SMOKE=1` is for.
+`train/rft_lora.py` and `evaluation.generate` are tested.
+
+**Reading the results.** Success = a method clearly above `rft_*` at the same data and toward Instruct; report paired
+McNemar tests (see README for the helper pattern) and both label settings. Known risks: unbounded negative-advantage
+losses can collapse a 1B model (our fork-LoRA round 1: −20 points even with shuffled labels) — if `dec_*` collapses,
+lower the lr further or raise `--kl`; if nothing changes at all, the lr is too small for bf16 (our round 2).
+Useful extras if time allows: a `--shuffle`-style control for the best method (randomize the reward signs), a second
+seed, and iterating RFT for a second round from the best model.
+
+**Results back:** commit `results/explore/eval/*/test.metrics.json`, `results/explore/*/train.metrics.json`, and the
+`*_config.json` files from `checkpoints/explore/*` (copy them into `results/explore/configs/`); never the checkpoints.
+
+**Update (2026-11-23 evening): `train/decision_lora.py` now follows the ReasonMaxxer reference code** (github.com/farukakgul/ReasonMaxxer): 50 mixed-outcome problems closest to a 0.5 pass rate, shortest 80% of rollouts, absolute entropy threshold tau = 1.4 nats, lr 1e-4, warmup 50, <= 149 optimizer steps, fixed signal-clarity curriculum, KL 0.2 over all non-decision positions incl. the prompt, adapter checkpoints via `--save_every`. The `decision` step trains on new recipe data (300 problems x 20 rollouts at T 0.6): tau sweep 1.0 / 1.4 / 2.2, label-free (majority), a positive-only ablation, and an all-problems variant. Pull before running.

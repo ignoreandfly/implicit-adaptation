@@ -121,7 +121,12 @@ def main():
 
     method = importlib.import_module(f"methods.{args.method}")
     t0 = time.time()
-    results = method.run(model, tok, texts, answers, task, args, stop_ids(model.generation_config, tok))
+    results, CH = [], 50   # chunks of problems, only for a progress bar
+    from tqdm import tqdm
+    for i in tqdm(range(0, len(texts), CH), desc=f"{args.method} {args.split} ({len(texts)} problems, chunks of {CH})",
+                  mininterval=20):
+        results += method.run(model, tok, texts[i:i + CH], answers[i:i + CH], task, args,
+                              stop_ids(model.generation_config, tok))
     secs = round(time.time() - t0, 1)
 
     chosen = [r["paths"][r["chosen"]] for r in results]

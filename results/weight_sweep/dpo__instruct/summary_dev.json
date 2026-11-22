@@ -1,0 +1,27 @@
+{
+  "a": "olmo2-1b-dpo",
+  "b": "olmo2-1b-instruct",
+  "split": "dev",
+  "results": {
+    "0.5": {
+      "acc": 0.78,
+      "trunc": 0.015,
+      "tokens": 155.415
+    },
+    "1.0": {
+      "acc": 0.785,
+      "trunc": 0.015,
+      "tokens": 154.365
+    },
+    "1.5": {
+      "acc": 0.825,
+      "trunc": 0.045,
+      "tokens": 165.535
+    },
+    "2.0": {
+      "acc": 0.765,
+      "trunc": 0.095,
+      "tokens": 194.96
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.7_n8",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "format": null,
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "n_problems": 50,
+    "trim": 0.8,
+    "tau": 1.4,
+    "tau_pct": null,
+    "gate": "entropy",
+    "margin_thr": 0.2,
+    "share": null,
+    "kl": 0.2,
+    "kl_scope": "all",
+    "adv_clip": 2.5,
+    "lr": 0.0001,
+    "epochs": 2,
+    "max_steps": 149,
+    "warmup": 50,
+    "accum": 8,
+    "rank": 32,
+    "shuffle": false,
+    "positive_only": true,
+    "save_every": 0,
+    "max_len": 1024,
+    "limit": null,
+    "seed": 42,
+    "out": "/data/azfarm/siddhant_fork_lora/rmx_base_posonly"
+  },
+  "stats": {
+    "skipped_uniform": 323,
+    "problems": 50,
+    "rollouts_selected": 400,
+    "rollouts_after_trim": 320,
+    "pos_rollouts": 180
+  },
+  "threshold": 1.4,
+  "decision_share": 0.18188842957218487,
+  "steps": 45,
+  "log": [
+    {
+      "step": 10,
+      "epoch": 0,
+      "l_dec": 1.1258578300476074,
+      "l_kl": 0.0008092582575045526,
+      "lr": 2.4444444444444445e-05
+    },
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": 0.4607398509979248,
+      "l_kl": 0.01731337234377861,
+      "lr": 4.666666666666667e-05
+    },
+    {
+      "step": 30,
+      "epoch": 1,
+      "l_dec": 0.8966358304023743,
+      "l_kl": 0.04261432960629463,
+      "lr": 6.88888888888889e-05
+    },
+    {
+      "step": 40,
+      "epoch": 1,
+      "l_dec": 1.0613235235214233,
+      "l_kl": 0.051402755081653595,
+      "lr": 9.111111111111112e-05
+    }
+  ]
+}

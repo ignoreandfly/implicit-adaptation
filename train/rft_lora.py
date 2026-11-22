@@ -58,7 +58,7 @@ def main():
         if args.label == "gold":
             keep = [o for o, s in zip(outs, scores) if s["lenient_correct"]]
         else:
-            v = Counter(a for a in ans if a is not None)
+            v = Counter(a for a in (r.get("label_answers") or ans) if a is not None)
             if not v:
                 continue
             maj = v.most_common(1)[0][0]

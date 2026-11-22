@@ -1,0 +1,22 @@
+{
+  "a": "olmo2-1b-sft",
+  "b": "/data/azfarm/siddhant_fork_lora/sft_rft_gold",
+  "split": "dev",
+  "results": {
+    "1.5": {
+      "acc": 0.735,
+      "trunc": 0.005,
+      "tokens": 130.265
+    },
+    "2.0": {
+      "acc": 0.74,
+      "trunc": 0.0,
+      "tokens": 125.915
+    },
+    "3.0": {
+      "acc": 0.71,
+      "trunc": 0.01,
+      "tokens": 126.665
+    }
+  }
+}
