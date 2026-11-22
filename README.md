@@ -209,6 +209,16 @@ another question's solution (Hewitt's exact test) all four models are at 88–94
 
 ### Future directions
 
+- **Next method candidates (2026-11-23), building on what works (RFT on own correct samples):**
+  (a) *Faithful ReasonMaxxer on OLMo* ([arXiv 2605.06241](https://arxiv.org/abs/2605.06241)): advantage-weighted
+  loss at ALL high-entropy decision points of full rollouts (positives and negatives), KL anchor elsewhere. Their
+  ablation: positive-only (= RFT) gives about half the gain, adding negatives the other half. Our RFT results are
+  the positive-only half; our fork-LoRA was a different single-token variant, so the faithful recipe is untested
+  on OLMo. Variants: gold vs. majority (label-free) advantages; Base vs. SFT; 1B vs. 7B.
+  (b) *Fork-branch self-training*: on training questions, decode greedily, branch at the closest-call forks, and
+  fine-tune on the corrected branch (same prefix, one different decision, own continuation) wherever it reaches the
+  gold / majority answer and greedy did not; optionally use the failing greedy path as the negative at that fork.
+  Minimal, on-policy corrections at the decisions RL changes. Compare to RFT at equal data.
 - **Planned method: fork-contrastive self-distillation (LoRA).** Build on ReasonMaxxer
   ([arXiv 2605.06241](https://arxiv.org/abs/2605.06241): LoRA trained only at high-entropy decision points ≈ RL)
   with two changes from our findings: (1) training pairs are *minimal counterfactual pairs* from fork branching
