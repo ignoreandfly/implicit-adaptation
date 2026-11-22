@@ -49,7 +49,7 @@ def run(model, tok, texts, answers, task, args, ends):
             logp = torch.log_softmax(out.logits[:, -1].float() / tau, -1)
             top = logp.topk(20, -1)
             q = torch.softmax(top.values, -1)
-            H = -(q * q.clamp_min(1e-30).log()).sum(-1).tolist()
+            H = (-(q * q.clamp_min(1e-30).log()).sum(-1)).tolist()
             sampled = _top_p_sample(logp, 0.95).tolist()
             top2 = top.indices[:, :2].tolist()
             parents, toks, new_owner, new_gens = [], [], [], []

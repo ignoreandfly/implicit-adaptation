@@ -1,0 +1,152 @@
+{
+  "fork_threshold_nats": 1.2092598915100101,
+  "greedy_token_entropy_mean": 0.635448296429598,
+  "groups": {
+    "rescued_correct": {
+      "n": 120,
+      "entropy_mean": 2.173588922868172,
+      "entropy_median": 2.095250129699707,
+      "entropy_percentile_median": 0.9323427248166731,
+      "fork_share": 0.8666666666666667,
+      "rank_dist": {
+        "2": 0.575,
+        "3": 0.16666666666666666,
+        "4+": 0.25
+      },
+      "position_median": 8.0,
+      "position_first5_share": 0.0
+    },
+    "rescued_incorrect": {
+      "n": 200,
+      "entropy_mean": 2.3673896117508413,
+      "entropy_median": 2.583324432373047,
+      "entropy_percentile_median": 0.9687186414511773,
+      "fork_share": 0.895,
+      "rank_dist": {
+        "2": 0.44,
+        "3": 0.17,
+        "4+": 0.36
+      },
+      "position_median": 7.0,
+      "position_first5_share": 0.0
+    },
+    "greedywrong_correct": {
+      "n": 157,
+      "entropy_mean": 2.188859250325306,
+      "entropy_median": 2.1629621982574463,
+      "entropy_percentile_median": 0.9385565418757237,
+      "fork_share": 0.8598726114649682,
+      "rank_dist": {
+        "2": 0.554140127388535,
+        "3": 0.1592356687898089,
+        "4+": 0.2802547770700637
+      },
+      "position_median": 8.0,
+      "position_first5_share": 0.0
+    },
+    "greedywrong_incorrect": {
+      "n": 1019,
+      "entropy_mean": 2.3770674106768235,
+      "entropy_median": 2.6040263175964355,
+      "entropy_percentile_median": 0.969702817445002,
+      "fork_share": 0.8812561334641805,
+      "rank_dist": {
+        "2": 0.4946025515210991,
+        "3": 0.16290480863591755,
+        "4+": 0.3277723258096173
+      },
+      "position_median": 7.0,
+      "position_first5_share": 0.0
+    },
+    "all_correct": {
+      "n": 543,
+      "entropy_mean": 2.073895055917306,
+      "entropy_median": 2.117020845413208,
+      "entropy_percentile_median": 0.9342724816673099,
+      "fork_share": 0.8471454880294659,
+      "rank_dist": {
+        "2": 0.5340699815837937,
+        "3": 0.18232044198895028,
+        "4+": 0.27992633517495397
+      },
+      "position_median": 8.0,
+      "position_first5_share": 0.0
+    },
+    "all_incorrect": {
+      "n": 1448,
+      "entropy_mean": 2.3121945745625547,
+      "entropy_median": 2.517423987388611,
+      "entropy_percentile_median": 0.9654187572365882,
+      "fork_share": 0.8715469613259669,
+      "rank_dist": {
+        "2": 0.5069060773480663,
+        "3": 0.17472375690607736,
+        "4+": 0.30732044198895025
+      },
+      "position_median": 8.0,
+      "position_first5_share": 0.0
+    }
+  },
+  "top_divergence_tokens_rescued_correct": [
+    [
+      "' On' -> ' Sarah'",
+      4
+    ],
+    [
+      "' First' -> ' If'",
+      4
+    ],
+    [
+      "' has' -> ' needs'",
+      3
+    ],
+    [
+      "' First' -> ' The'",
+      3
+    ],
+    [
+      "' doubled' -> ' has'",
+      3
+    ],
+    [
+      "' If' -> ' We'",
+      3
+    ],
+    [
+      "' The' -> ' First'",
+      3
+    ],
+    [
+      "' and' -> '.'",
+      3
+    ],
+    [
+      "' If' -> ' Mark'",
+      3
+    ],
+    [
+      "' The' -> ' At'",
+      2
+    ],
+    [
+      "' The' -> ' If'",
+      2
+    ],
+    [
+      "' we' -> ' the'",
+      2
+    ],
+    [
+      "' started' -> ' placed'",
+      2
+    ],
+    [
+      "' Tom' -> ' First'",
+      2
+    ],
+    [
+      "' which' -> ' so'",
+      2
+    ]
+  ]
+}
