@@ -9,6 +9,10 @@ prefix, each with m sampled continuations. With a label answer y* per question:
 Loss per fork (ReasonMaxxer-style, applied only at the fork position):
     L = -(A_1 log p(tok_1 | prefix) + A_2 log p(tok_2 | prefix))
       + lambda * mean_t KL(p_base || p_lora) over the response prefix positions (anchor)
+--loss dpo (bounded alternative; the unbounded advantage loss above destroyed the model in the first
+overnight run, even with shuffled labels): token-level DPO at the fork, winner w = higher-value token,
+    L = -|A| * log sigmoid(beta * [(log p(w) - log p_ref(w)) - (log p(l) - log p_ref(l))])
+with p_ref = the frozen SFT model (adapter disabled), plus the same KL anchor on the prefix.
 LoRA rank 32, alpha 64, on q/k/v/o. The adapter is merged and saved as a full model for vLLM eval.
 
     python -m train.fork_lora --pairs data/fork_pairs/olmo2-1b-sft_train1000.jsonl --label majority \
@@ -70,6 +74,8 @@ def main():
     ap.add_argument("--epochs", type=int, default=2)
     ap.add_argument("--accum", type=int, default=8)
     ap.add_argument("--kl", type=float, default=0.2)
+    ap.add_argument("--loss", choices=["adv", "dpo"], default="adv")
+    ap.add_argument("--beta", type=float, default=0.5)
     ap.add_argument("--rank", type=int, default=32)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", required=True)
@@ -111,11 +117,19 @@ def main():
                 out = model(ids)
             lp = torch.log_softmax(out.logits[0].float(), -1)
             last = lp[-1]
-            l_dec = -(e["a1"] * last[e["tok1"]] - e["a1"] * last[e["tok2"]])
+            need_ref = args.loss == "dpo" or (args.kl > 0 and len(e["ids"]) - e["P"] > 0)
+            if need_ref:
+                with torch.no_grad(), model.disable_adapter(), torch.autocast("cuda", dtype=torch.bfloat16):
+                    lref = torch.log_softmax(model(ids).logits[0].float(), -1)
+            if args.loss == "dpo":
+                w, l = (e["tok1"], e["tok2"]) if e["a1"] > 0 else (e["tok2"], e["tok1"])
+                z = (last[w] - lref[-1, w]) - (last[l] - lref[-1, l])
+                l_dec = -abs(e["a1"]) * 2 * torch.nn.functional.logsigmoid(args.beta * z)
+            else:
+                l_dec = -(e["a1"] * last[e["tok1"]] - e["a1"] * last[e["tok2"]])
             l_kl = torch.zeros((), device="cuda")
             if args.kl > 0 and len(e["ids"]) - e["P"] > 0:
-                with torch.no_grad(), model.disable_adapter(), torch.autocast("cuda", dtype=torch.bfloat16):
-                    lb = torch.log_softmax(model(ids).logits[0, e["P"] - 1:-1].float(), -1)
+                lb = lref[e["P"] - 1:-1]
                 lq = lp[e["P"] - 1:-1]
                 l_kl = (lb.exp() * (lb - lq)).sum(-1).mean()
             loss = (l_dec + args.kl * l_kl) / args.accum
