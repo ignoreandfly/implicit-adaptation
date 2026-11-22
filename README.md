@@ -69,6 +69,15 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 | 8 | Power sampling (MCMC on the sharpened base distribution; base matches GRPO) | [Karan & Du, ICLR 2026](https://arxiv.org/abs/2510.14901); cheaper: [token-level](https://arxiv.org/abs/2601.21590), [entropy-guided](https://arxiv.org/abs/2606.09926) | Qwen2.5 base models; MATH500 | high (needs vLLM) |
 | 9 | CoT steering vector (add a "think step by step" direction to the residual stream) | [Zhang & Viteri 2024](https://arxiv.org/abs/2409.14026); SAE-free: [2505.15634](https://arxiv.org/abs/2505.15634) | Llama3-8B, Mistral-7B | low–medium |
 | 10 | φ-Decoding (foresight sampling) | [Xu et al., ACL 2025](https://arxiv.org/abs/2503.13288) | LLaMA3.1-8B, +14% over CoT | high |
+| 11 | Power-SMC (particle-filter power sampling in one batched decode; 1.4–3.3× latency vs 16–28× for MCMC) | [Azizi et al. 2026](https://arxiv.org/abs/2602.10273) | MATH500, three models | medium (vLLM/HF) |
+| 12 | Depth-entropy guided power sampling (favor late layer-wise entropy collapse) | [Meng et al. 2026](https://arxiv.org/abs/2607.09693) | three models; ≈ GRPO in-domain | high |
+| 13 | Better aggregation than majority vote: prefix-consistency weighted vote (regenerate from truncated prefixes) | [Iwase et al. 2026](https://arxiv.org/abs/2605.07654) | five reasoning models; MV accuracy at median 4.6× fewer tokens | medium |
+| 14 | Better aggregation: embedding-based agreement (cluster samples in hidden-state space) | [Ontalvilla et al. 2026](https://arxiv.org/abs/2606.12003) | math, code, summarization | rescoring only |
+| 15 | Better aggregation: ARBITER (fix wrong-majority basins with same-model evidence / hidden states) | [Cai et al. 2026](https://arxiv.org/abs/2605.26172) | Qwen3-4B, GSM8K | rescoring only |
+| 16 | Better aggregation: delegation voting (PPV; entropy confidence + embedding similarity) | [Sakai et al. 2026](https://arxiv.org/abs/2606.08098) | MMLU-Pro | rescoring only |
+| 17 | REWIND (entropy-gradient backtracking + MH-style filtering of regenerations) | [arXiv 2610.19561](https://arxiv.org/abs/2610.19561) | three model families | medium–high |
+| 18 | DenseSteer (steering vector from 50 own solutions rewritten "dense" by an external LLM) — candidate for the cheap replication stage | [Ouyang et al., ICML 2026](https://arxiv.org/abs/2605.29247) | Qwen2.5 / Llama 1B–8B Instruct | ≈ greedy |
+| 19 | USteer (steer activations along the gradient of a confidence measure) — candidate for the cheap replication stage | [NeurIPS 2026](https://arxiv.org/abs/2609.38962) | reasoning / hallucination tasks | ≈ greedy |
 | — | Hewitt et al. rule-based adapter | [Hewitt et al. 2024](https://arxiv.org/abs/2409.14254) | Llama-2 7B, OLMo 7B | after the above |
 
 ### Screening results so far (OLMo 2 1B Base, GSM8K dev, 200 problems, lenient accuracy)
@@ -93,6 +102,10 @@ With n = 200 the standard error is about ±3.5 points. Zero-shot CoT is the chea
 remaining methods must beat; they run on top of its prefix. **Self-consistency beats it by +10 points**
 (paired McNemar p = 0.004; maj@k: k=4 40.5%, k=6 48%, k=8 50.5%, k=10 51%; oracle@10 71%) at ~10x the
 tokens: the first "costly method that works", and the target for a rule-based (Hewitt-style) replication. Metrics: `results/screen/olmo2-1b-base/dev/`.
+
+Context for small models: majority vote helps only on questions where the model is right more
+than half the time and can hurt otherwise ([When SC Hurts](https://arxiv.org/abs/2611.11201),
+[SLM-MUX](https://arxiv.org/abs/2510.05077)); our dev gain is an average over both regimes.
 
 Worth checking directly at 1B: whether contrastive decoding and DoLa hurt small models, and
 whether DTR (which does not predict correctness on our greedy outputs) works within a problem.
