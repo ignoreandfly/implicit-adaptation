@@ -1,0 +1,12 @@
+{
+  "a": "olmo2-1b-dpo",
+  "b": "olmo2-1b-instruct",
+  "split": "test500",
+  "results": {
+    "1.5": {
+      "acc": 0.702,
+      "trunc": 0.094,
+      "tokens": 188.002
+    }
+  }
+}

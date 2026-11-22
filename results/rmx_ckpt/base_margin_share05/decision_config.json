@@ -1,0 +1,101 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.7_n8",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "format": null,
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "n_problems": 50,
+    "trim": 0.8,
+    "tau": 1.4,
+    "tau_pct": null,
+    "gate": "margin",
+    "margin_thr": 0.2,
+    "share": 0.05,
+    "kl": 0.2,
+    "kl_scope": "all",
+    "adv_clip": 2.5,
+    "lr": 0.0001,
+    "epochs": 2,
+    "max_steps": 149,
+    "warmup": 50,
+    "accum": 8,
+    "rank": 32,
+    "shuffle": false,
+    "positive_only": false,
+    "save_every": 20,
+    "max_len": 1024,
+    "limit": null,
+    "seed": 42,
+    "out": "/data/azfarm/siddhant_fork_lora/rmxck_base_margin_share05"
+  },
+  "stats": {
+    "skipped_uniform": 323,
+    "problems": 50,
+    "rollouts_selected": 400,
+    "rollouts_after_trim": 320,
+    "pos_rollouts": 180
+  },
+  "threshold": -0.06735344231128693,
+  "decision_share": 0.052674758876673874,
+  "steps": 80,
+  "log": [
+    {
+      "step": 10,
+      "epoch": 0,
+      "l_dec": 1.3175275325775146,
+      "l_kl": 0.00020980971748940647,
+      "lr": 2.2000000000000003e-05
+    },
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": 0.859158992767334,
+      "l_kl": 0.0004175057401880622,
+      "lr": 4.2e-05
+    },
+    {
+      "step": 30,
+      "epoch": 0,
+      "l_dec": 3.1387481689453125,
+      "l_kl": 0.0017662323080003262,
+      "lr": 6.2e-05
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "l_dec": 0.0,
+      "l_kl": 0.02077397331595421,
+      "lr": 8.2e-05
+    },
+    {
+      "step": 50,
+      "epoch": 1,
+      "l_dec": 1.1581525802612305,
+      "l_kl": 0.1742221564054489,
+      "lr": 0.0001
+    },
+    {
+      "step": 60,
+      "epoch": 1,
+      "l_dec": 0.659464955329895,
+      "l_kl": 0.196398064494133,
+      "lr": 6.666666666666667e-05
+    },
+    {
+      "step": 70,
+      "epoch": 1,
+      "l_dec": 0.5302528738975525,
+      "l_kl": 0.10014741122722626,
+      "lr": 3.3333333333333335e-05
+    },
+    {
+      "step": 80,
+      "epoch": 1,
+      "l_dec": 0.0,
+      "l_kl": 0.1828177571296692,
+      "lr": 0.0
+    }
+  ]
+}

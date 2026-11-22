@@ -1,0 +1,101 @@
+{
+  "args": {
+    "gens": "results/judge/olmo2-1b-sft_train1500_n8",
+    "split": "train",
+    "model": "olmo2-1b-sft",
+    "format": null,
+    "prefix": "",
+    "label": "gold",
+    "n_problems": 50,
+    "trim": 0.8,
+    "tau": 1.4,
+    "tau_pct": null,
+    "gate": "entropy",
+    "margin_thr": 0.2,
+    "share": null,
+    "kl": 0.2,
+    "kl_scope": "all",
+    "adv_clip": 2.5,
+    "lr": 0.0001,
+    "epochs": 2,
+    "max_steps": 149,
+    "warmup": 50,
+    "accum": 8,
+    "rank": 32,
+    "shuffle": false,
+    "positive_only": false,
+    "save_every": 0,
+    "max_len": 1024,
+    "limit": null,
+    "seed": 42,
+    "out": "/data/azfarm/siddhant_fork_lora/rmx_sft_gold"
+  },
+  "stats": {
+    "skipped_uniform": 367,
+    "problems": 50,
+    "rollouts_selected": 400,
+    "rollouts_after_trim": 320,
+    "pos_rollouts": 155
+  },
+  "threshold": 1.4,
+  "decision_share": 0.06358834545826539,
+  "steps": 80,
+  "log": [
+    {
+      "step": 10,
+      "epoch": 0,
+      "l_dec": -1.553177833557129,
+      "l_kl": 0.0008477793890051544,
+      "lr": 2.2000000000000003e-05
+    },
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": -2.226912260055542,
+      "l_kl": 0.01571437157690525,
+      "lr": 4.2e-05
+    },
+    {
+      "step": 30,
+      "epoch": 0,
+      "l_dec": -1.885424017906189,
+      "l_kl": 0.05608873441815376,
+      "lr": 6.2e-05
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "l_dec": 0.0,
+      "l_kl": 0.0676426962018013,
+      "lr": 8.2e-05
+    },
+    {
+      "step": 50,
+      "epoch": 1,
+      "l_dec": -3.6425929069519043,
+      "l_kl": 0.11721450090408325,
+      "lr": 0.0001
+    },
+    {
+      "step": 60,
+      "epoch": 1,
+      "l_dec": -6.002306938171387,
+      "l_kl": 0.30270129442214966,
+      "lr": 6.666666666666667e-05
+    },
+    {
+      "step": 70,
+      "epoch": 1,
+      "l_dec": -4.757352828979492,
+      "l_kl": 0.6547603011131287,
+      "lr": 3.3333333333333335e-05
+    },
+    {
+      "step": 80,
+      "epoch": 1,
+      "l_dec": 0.0,
+      "l_kl": 0.23050813376903534,
+      "lr": 0.0
+    }
+  ]
+}

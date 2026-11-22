@@ -34,6 +34,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from tqdm import tqdm
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -106,6 +107,12 @@ def main():
     ap.add_argument("--trim", type=float, default=0.8, help="keep this fraction of the shortest selected rollouts")
     ap.add_argument("--tau", type=float, default=1.4, help="absolute entropy threshold (nats) for decision points")
     ap.add_argument("--tau_pct", type=float, default=None, help="if set, use this percentile of entropies instead")
+    ap.add_argument("--gate", choices=["entropy", "margin"], default="entropy",
+                    help="decision points by reference entropy > tau (ReasonMaxxer) or by reference top-2 probability "
+                         "margin < --margin_thr (our fork criterion)")
+    ap.add_argument("--margin_thr", type=float, default=0.2)
+    ap.add_argument("--share", type=float, default=None,
+                    help="instead of an absolute threshold, gate this fraction of response tokens (e.g. 0.05)")
     ap.add_argument("--kl", type=float, default=0.2)
     ap.add_argument("--kl_scope", choices=["all", "response"], default="all")
     ap.add_argument("--adv_clip", type=float, default=2.5)
@@ -145,16 +152,26 @@ def main():
         with torch.no_grad(), model.disable_adapter(), torch.autocast("cuda", dtype=torch.bfloat16):
             return torch.log_softmax(model(ids).logits[0, :-1].float(), -1)
 
-    # teacher-forced reference entropies at response positions (score_rollouts.py)
-    for e in ex:
+    # teacher-forced reference statistics at response positions (score_rollouts.py); score: higher = more decision-like
+    for e in tqdm(ex, desc="score reference", mininterval=30):
         lr = ref_logp(torch.tensor([e["ids"]], device="cuda"))[e["P"] - 1:]
-        e["H"] = (-(lr.exp() * lr).sum(-1)).cpu()
-    tau = args.tau if args.tau_pct is None else float(np.percentile(torch.cat([e["H"] for e in ex]).numpy(), args.tau_pct))
+        if args.gate == "entropy":
+            e["S"] = (-(lr.exp() * lr).sum(-1)).cpu()
+        else:
+            top = lr.exp().topk(2, -1).values
+            e["S"] = -(top[:, 0] - top[:, 1]).cpu()          # negative top-2 margin
+    allS = torch.cat([e["S"] for e in ex]).numpy()
+    if args.share is not None:
+        tau = float(np.percentile(allS, 100 * (1 - args.share)))
+    elif args.gate == "entropy":
+        tau = args.tau if args.tau_pct is None else float(np.percentile(allS, args.tau_pct))
+    else:
+        tau = -args.margin_thr
     for e in ex:
-        e["D"] = e["H"] > tau
+        e["D"] = e["S"] > tau
         e["clarity"] = abs(e["A"]) * float(e["D"].float().mean())
     dshare = float(np.mean([float(e["D"].float().mean()) for e in ex]))
-    print(f"tau = {tau:.3f} nats; decision share of response tokens = {dshare:.4f}", flush=True)
+    print(f"gate {args.gate}: threshold {tau:.3f}; decision share of response tokens = {dshare:.4f}", flush=True)
     if not args.shuffle:
         ex.sort(key=lambda e: -e["clarity"])
 
@@ -166,6 +183,7 @@ def main():
         opt, lambda s: (s + 1) / max(1, warm) if s < warm else max(0.0, (total - s) / max(1, total - warm)))
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     model.train(); step = 0; log = []; n_micro = 0; done = False
+    bar = tqdm(total=total, desc="optimizer steps", mininterval=30)
     for ep in range(args.epochs):
         order = list(range(len(ex)))
         if args.shuffle:
@@ -188,7 +206,7 @@ def main():
             n_micro += 1
             if n_micro % args.accum == 0:
                 torch.nn.utils.clip_grad_norm_(params, 1.0); opt.step(); sched.step(); opt.zero_grad(set_to_none=True)
-                step += 1
+                step += 1; bar.update(1)
                 if step % 10 == 0:
                     rec = {"step": step, "epoch": ep, "l_dec": float(l_dec), "l_kl": float(l_kl), "lr": sched.get_last_lr()[0]}
                     log.append(rec); print(rec, flush=True)
@@ -199,10 +217,11 @@ def main():
                     break
         if done:
             break
+    bar.close()
     model.save_pretrained(out / f"adapter_step{step}")
     model.merge_and_unload().to(torch.bfloat16).save_pretrained(out, safe_serialization=True)
     tok.save_pretrained(out)
-    json.dump({"args": vars(args), "stats": dict(stats), "tau": tau, "decision_share": dshare, "steps": step,
+    json.dump({"args": vars(args), "stats": dict(stats), "threshold": tau, "decision_share": dshare, "steps": step,
                "log": log}, open(out / "decision_config.json", "w"), indent=2)
     print(f"saved merged model ({step} optimizer steps) to {out}", flush=True)
 

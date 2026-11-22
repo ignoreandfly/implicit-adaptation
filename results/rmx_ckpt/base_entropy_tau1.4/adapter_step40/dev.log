@@ -1,0 +1,40 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+greedy dev (200 problems, chunks of 50):   0%|          | 0/4 [00:00<?, ?it/s]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy dev (200 problems, chunks of 50):  25%|██▌       | 1/4 [00:43<02:10, 43.61s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy dev (200 problems, chunks of 50):  50%|█████     | 2/4 [01:22<01:22, 41.04s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy dev (200 problems, chunks of 50):  75%|███████▌  | 3/4 [01:47<00:33, 33.69s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy dev (200 problems, chunks of 50): 100%|██████████| 4/4 [02:22<00:00, 34.24s/it]greedy dev (200 problems, chunks of 50): 100%|██████████| 4/4 [02:22<00:00, 35.72s/it]
+{
+ "acc_strict": 0.005,
+ "acc_lenient": 0.395,
+ "format_rate": 0.025,
+ "mean_steps": 2.62,
+ "mean_gen_tokens": 102.19,
+ "truncation_rate": 0.055,
+ "acc_chosen": 0.395,
+ "seconds": 142.9
+}
