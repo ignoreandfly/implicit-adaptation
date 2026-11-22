@@ -24,7 +24,7 @@ from evaluation.generate import stop_ids
 from evaluation.metrics import aggregate
 from tasks import get_task
 
-METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc", "rule_adapter"]
+METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc", "rule_adapter", "rl_rules"]
 
 
 def main():
@@ -85,12 +85,20 @@ def main():
     ap.add_argument("--ra_ngram_pen", type=float, default=5.0)
     ap.add_argument("--ra_n", type=int, default=1, help="samples per question (>1: sample + majority vote)")
     ap.add_argument("--ra_off", default="", help="comma list of rules to disable: stop,shift,first,rep")
+    # rl_rules (SFT + RL-derived token-bias table; see methods/rl_rules.py)
+    ap.add_argument("--rl_table", default="results/rl_delta/olmo2-1b-sft_vs_olmo2-1b-instruct/summary.json")
+    ap.add_argument("--rl_k", type=int, default=20)
+    ap.add_argument("--rl_beta", type=float, default=1.0)
+    ap.add_argument("--rl_scope", choices=["fork", "all"], default="fork")
+    ap.add_argument("--rl_fork_thr", type=float, default=None)
+    ap.add_argument("--rl_swaps", type=int, default=0, help="use the M most frequent SFT->Instruct swaps as rules")
+    ap.add_argument("--rl_oracle", action="store_true")
+    ap.add_argument("--rl_oracle_model", default="olmo2-1b-instruct")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
     hf_id, fmt = resolve(args.model)
-    if fmt != "plain":
-        raise NotImplementedError("screening harness currently supports plain-format (base) models")
+    args.fmt = fmt  # methods that support chat models read this; the others assume "plain"
     task = get_task(args.task)
     rows = read_jsonl(f"data/{args.task}/{args.split}.jsonl")[: args.limit]
     exemplars = (random.Random(args.seed).sample(read_jsonl(f"data/{args.task}/train.jsonl"), args.few_shot)

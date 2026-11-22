@@ -7,12 +7,12 @@ import torch
 from common import prompts
 
 
-def make_path(tok, gen_ids, task, answer, max_new_tokens, prefix="", extra=None, score_text=None):
+def make_path(tok, gen_ids, task, answer, max_new_tokens, prefix="", extra=None, score_text=None, fmt="plain"):
     """Score one generated continuation. prefix = text forced after "Answer:" (kept in the output)."""
     text = prefix + tok.decode(gen_ids, skip_special_tokens=True)
-    out = prompts.truncate(text, "plain")
+    out = prompts.truncate(text, fmt)
     score = task.verify(score_text(out) if score_text else out, answer)
-    hit_stop = any(s in text for s in prompts.STOP_STRINGS)
+    hit_stop = fmt == "plain" and any(s in text for s in prompts.STOP_STRINGS)
     return {"output": out, "gen_tokens": len(gen_ids), "truncated": len(gen_ids) >= max_new_tokens and not hit_stop,
             "score": score, **(extra or {})}
 
@@ -21,11 +21,12 @@ def stop_hit(tok, ids):
     return any(s in tok.decode(ids[-12:], skip_special_tokens=True) for s in prompts.STOP_STRINGS)
 
 
-def manual_decode(model, tok, texts, max_new_tokens, next_token_fn, ends, need_hidden=False):
+def manual_decode(model, tok, texts, max_new_tokens, next_token_fn, ends, need_hidden=False, fmt="plain"):
     """Greedy-style decoding where next_token_fn(final_logits[B,V] fp32, hidden[list of B x d] or None,
     generated: list[list[int]]) -> LongTensor[B] picks each token. Stops at EOS / stop strings.
     Returns generated token ids per prompt (stop-string text included; truncate() removes it)."""
-    enc = tok(texts, return_tensors="pt", padding=True).to("cuda")
+    # chat templates already contain their special tokens; only plain prompts get a BOS added
+    enc = tok(texts, return_tensors="pt", padding=True, add_special_tokens=(fmt == "plain")).to("cuda")
     att = enc.attention_mask
     B = att.shape[0]
     cur_ids, cur_pos = enc.input_ids, (att.cumsum(-1) - 1).clamp_min(0)
@@ -46,7 +47,7 @@ def manual_decode(model, tok, texts, max_new_tokens, next_token_fn, ends, need_h
                 done[b] = True
                 continue
             gen[b].append(t)
-            if stop_hit(tok, gen[b]):
+            if fmt == "plain" and stop_hit(tok, gen[b]):
                 done[b] = True
         if all(done):
             break

@@ -57,7 +57,7 @@ def run(model, tok, texts, answers, task, args, ends):
                 p = owner[r]
                 cands = [sampled[r]]
                 if H[r] >= theta and count[p] < M:
-                    cands = top2
+                    cands = top2[r]
                     count[p] += 1
                 for t in cands:
                     generated[p] += 1
