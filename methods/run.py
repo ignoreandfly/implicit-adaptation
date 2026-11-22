@@ -24,7 +24,7 @@ from evaluation.generate import stop_ids
 from evaluation.metrics import aggregate
 from tasks import get_task
 
-METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc"]
+METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc", "power_smc", "rule_adapter"]
 
 
 def main():
@@ -73,6 +73,16 @@ def main():
     ap.add_argument("--smc_alpha", type=float, default=4.0)
     ap.add_argument("--smc_kappa", type=float, default=0.5)
     ap.add_argument("--smc_ramp", type=int, default=100)
+    # rule_adapter (Hewitt-style rules; see methods/rule_adapter.py)
+    ap.add_argument("--ra_stop_pen", type=float, default=5.0)
+    ap.add_argument("--ra_end_bonus", type=float, default=5.0)
+    ap.add_argument("--ra_step_bonus", type=float, default=1.0)
+    ap.add_argument("--ra_drift_pen", type=float, default=4.0)
+    ap.add_argument("--ra_first_digit_pen", type=float, default=5.0)
+    ap.add_argument("--ra_first_step_bonus", type=float, default=3.0)
+    ap.add_argument("--ra_rep_pen", type=float, default=1.5)
+    ap.add_argument("--ra_ngram_pen", type=float, default=5.0)
+    ap.add_argument("--ra_off", default="", help="comma list of rules to disable: stop,shift,first,rep")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
