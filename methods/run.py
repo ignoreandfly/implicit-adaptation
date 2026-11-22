@@ -90,7 +90,7 @@ def main():
 
     method = importlib.import_module(f"methods.{args.method}")
     t0 = time.time()
-    results = method.run(model, tok, texts, answers, task, args, stop_ids(model, tok))
+    results = method.run(model, tok, texts, answers, task, args, stop_ids(model.generation_config, tok))
     secs = round(time.time() - t0, 1)
 
     chosen = [r["paths"][r["chosen"]] for r in results]
