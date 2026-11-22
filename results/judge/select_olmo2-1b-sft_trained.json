@@ -1,0 +1,49 @@
+{
+  "judge": "/data/azfarm/siddhant_fork_lora/judge_sft",
+  "pool": "results/olmo2-1b-sft/gsm8k/0shot_sub500_n64_t0.7/test.generations.jsonl",
+  "margin": 1,
+  "results": {
+    "4": {
+      "consulted_close": 250,
+      "acc_majority": 0.596,
+      "acc_judge_top2": 0.578,
+      "rescue_judge_top2": 30,
+      "harm_judge_top2": 39,
+      "acc_judge_close": 0.602,
+      "rescue_judge_close": 24,
+      "harm_judge_close": 21,
+      "oracle": 0.754,
+      "wrong_majority_with_gold_in_pool": 79,
+      "wm_fixed_judge_close": 24,
+      "wm_fixed_judge_top2": 30
+    },
+    "8": {
+      "consulted_close": 163,
+      "acc_majority": 0.678,
+      "acc_judge_top2": 0.62,
+      "rescue_judge_top2": 27,
+      "harm_judge_top2": 56,
+      "acc_judge_close": 0.7,
+      "rescue_judge_close": 25,
+      "harm_judge_close": 14,
+      "oracle": 0.842,
+      "wrong_majority_with_gold_in_pool": 82,
+      "wm_fixed_judge_close": 25,
+      "wm_fixed_judge_top2": 27
+    },
+    "16": {
+      "consulted_close": 109,
+      "acc_majority": 0.736,
+      "acc_judge_top2": 0.64,
+      "rescue_judge_top2": 22,
+      "harm_judge_top2": 70,
+      "acc_judge_close": 0.742,
+      "rescue_judge_close": 13,
+      "harm_judge_close": 10,
+      "oracle": 0.908,
+      "wrong_majority_with_gold_in_pool": 86,
+      "wm_fixed_judge_close": 13,
+      "wm_fixed_judge_top2": 22
+    }
+  }
+}

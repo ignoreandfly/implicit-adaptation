@@ -50,10 +50,13 @@ def main():
     rows = read_jsonl(f"{args.gens}/{args.split}.generations.jsonl")
     ex, kept_q, label_ok = [], 0, 0
     for r in rows:
-        outs = [p["output"] for p in r["paths"]]
-        ans = [p["score"]["lenient_answer"] for p in r["paths"]]
+        if "paths" in r:   # methods.run format
+            outs = [p["output"] for p in r["paths"]]; scores = [p["score"] for p in r["paths"]]
+        else:              # evaluation.generate format
+            outs, scores = r["outputs"], r["scores"]
+        ans = [s["lenient_answer"] for s in scores]
         if args.label == "gold":
-            keep = [o for o, p in zip(outs, r["paths"]) if p["score"]["lenient_correct"]]
+            keep = [o for o, s in zip(outs, scores) if s["lenient_correct"]]
         else:
             v = Counter(a for a in ans if a is not None)
             if not v:

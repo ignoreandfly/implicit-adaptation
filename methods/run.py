@@ -31,6 +31,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--method", choices=METHODS, required=True)
     ap.add_argument("--model", default="olmo2-1b-base")
+    ap.add_argument("--format", choices=["plain", "chat"], default=None, help="prompt format for local model paths (registry names know their own)")
     ap.add_argument("--task", default="gsm8k")
     ap.add_argument("--split", default="dev")
     ap.add_argument("--few_shot", type=int, default=0)
@@ -103,7 +104,7 @@ def main():
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
-    hf_id, fmt = resolve(args.model)
+    hf_id, fmt = resolve(args.model, args.format)
     args.fmt = fmt  # methods that support chat models read this; the others assume "plain"
     task = get_task(args.task)
     rows = read_jsonl(f"data/{args.task}/{args.split}.jsonl")[: args.limit]

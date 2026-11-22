@@ -1,21 +1,21 @@
 {
   "num_problems": 500,
   "samples_per_problem": 1,
-  "acc_strict": 0.014,
-  "acc_lenient": 0.396,
-  "format_rate": 0.048,
-  "mean_steps": 2.734,
-  "step_acc": 0.8339429407461595,
-  "mean_gen_tokens": 110.062,
+  "acc_strict": 0.004,
+  "acc_lenient": 0.414,
+  "format_rate": 0.024,
+  "mean_steps": 2.81,
+  "step_acc": 0.8491103202846975,
+  "mean_gen_tokens": 107.714,
   "truncation_rate": 0.046,
-  "acc_chosen": 0.396,
+  "acc_chosen": 0.414,
   "method": "greedy",
-  "model": "/mnt/swordfish-pool2/sb5435/fork_lora/base_rft_majority",
+  "model": "/data/azfarm/siddhant_fork_lora/base_rft_majority",
   "split": "test500",
   "few_shot": 0,
   "args": {
     "method": "greedy",
-    "model": "/mnt/swordfish-pool2/sb5435/fork_lora/base_rft_majority",
+    "model": "/data/azfarm/siddhant_fork_lora/base_rft_majority",
     "task": "gsm8k",
     "split": "test500",
     "few_shot": 0,
@@ -74,6 +74,6 @@
     "fm_chunk": 32,
     "fmt": "plain"
   },
-  "seconds": 307.2,
-  "git": "91867f97dce30c4f745cd4c6c477a6ea3fecd946"
+  "seconds": 344.0,
+  "git": "165c4cd6cc25b5a9ccd5aa3824c0914d6d2e9036"
 }
