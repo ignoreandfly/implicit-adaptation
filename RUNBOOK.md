@@ -193,11 +193,13 @@ test); trained 1B judge +2.2 over majority at k = 8 (only when the top-2 answers
 tokens does not beat RFT; inference-time selectors barely beat majority vote. ReasonMaxxer (arXiv 2605.06241) reports
 that adding *negatives* at decision points roughly doubles the gain of positive-only training (= RFT) — untested on OLMo.
 
-**Script:** `scripts/gcp_1b_explore.sh` (resumable; despite the name it runs on any machine — a lab server, a workstation or a cloud VM, no `gcloud` needed). Any single 24 GB+ GPU works for 1B. On a multi-GPU server, set `CUDA_VISIBLE_DEVICES` to a free GPU (check `nvidia-smi` first) and keep the default `MEM=0.85` only if that GPU is otherwise idle; lower it (e.g. `MEM=0.4`) on a shared GPU.
+**Where it runs.** Intended setup: Claude Code on a local PC drives a GCP VM through `gcloud` (create the VM as in section 6; for 1B a single L4 24 GB `g2-standard-8` or A100 40 GB `a2-highgpu-1g` is enough, ~100 GB disk). Then `gcloud compute ssh <vm> -- 'cd implicit-adaptation && …'`, launching with `nohup … &` (or inside `tmux`) so an ssh drop does not kill the run. Push results from the VM to GitHub (`git pull --rebase` first), and **stop the VM when done** (`gcloud compute instances stop <vm>`) so it stops using credits. The script itself needs no `gcloud` and runs on any GPU machine.
+
+**Script:** `scripts/gcp_1b_explore.sh` (resumable). Any single 24 GB+ GPU works for 1B. On a multi-GPU server, set `CUDA_VISIBLE_DEVICES` to a free GPU (check `nvidia-smi` first) and keep the default `MEM=0.85` only if that GPU is otherwise idle; lower it (e.g. `MEM=0.4`) on a shared GPU.
 
 ```bash
-# on the server, after RUNBOOK section 1 (envs + data/gsm8k incl. test500.jsonl)
-export CUDA_VISIBLE_DEVICES=<free gpu index>
+# on the VM, after RUNBOOK section 1 (envs + data/gsm8k incl. test500.jsonl)
+export CUDA_VISIBLE_DEVICES=0   # or a free GPU on a shared machine
 export VPY=~/miniconda3/envs/vllm/bin/python HPY=~/miniconda3/envs/hf/bin/python
 SMOKE=1 bash scripts/gcp_1b_explore.sh          # ~20 min: validates every step on 40 questions — do this first
 setsid nohup bash scripts/gcp_1b_explore.sh > logs/explore.log 2>&1 < /dev/null &   # full run
