@@ -14,19 +14,18 @@ pick_gpu () { while true; do g=$(nvidia-smi --query-gpu=index,memory.free --form
   awk -F', ' -v need="$1" '$2 >= need {print $1; exit}'); [ -n "$g" ] && { echo "$g"; return; }; sleep 120; done; }
 acc () { grep -oE '"acc_lenient": [0-9.]+' $1 | tail -1; }
 
-# baseline: Base + zero-shot CoT, greedy, dev (same decoder as the evals below)
-g=$(pick_gpu 9000); echo "=== [C gpu$g] baseline base+CoT dev $(date)"
-CUDA_VISIBLE_DEVICES=$g $HPY -m methods.run --method greedy --model olmo2-1b-base --prefix "$COT" --split dev \
-  --max_new_tokens 320 --out $R/base_cot_baseline > $L/base_baseline.log 2>&1; echo "  $(acc $L/base_baseline.log)"
+# baseline (Base + zero-shot CoT, dev) already measured: 0.415
 
 # data (vLLM, retry up to 5 times if the engine cannot start because the GPU filled up meanwhile)
-for try in 1 2 3 4 5; do
+for try in $(seq 1 12); do   # vLLM start-up fails when other users' memory changes mid-profiling: be patient
   [ -f $PAIRS ] && break
+  [ $try -gt 1 ] && sleep 600
   g=$(pick_gpu 9000); echo "=== [C gpu$g] base fork pairs (try $try) $(date)"
   CUDA_VISIBLE_DEVICES=$g $VPY -m train.fork_pairs --model olmo2-1b-base --prefix "$COT" --n 1000 --max_tokens 320 \
     --gpu_memory_utilization 0.3 --out $PAIRS > $L/base_fork_pairs.log 2>&1; tail -1 $L/base_fork_pairs.log
 done
 
+[ -f $PAIRS ] || { echo "no fork pairs after 12 tries; stopping lane C"; exit 1; }
 for spec in "base_dpo_major:--label majority" "base_dpo_gold:--label gold" "base_dpo_shuffled:--label majority --shuffle"; do
   tag=${spec%%:*}; args=${spec#*:}
   g=$(pick_gpu 10000); echo "=== [C gpu$g] train $tag $(date)"
