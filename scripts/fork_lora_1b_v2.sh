@@ -3,7 +3,6 @@
 # unbounded loss destroyed the model even with shuffled labels. Waits for round 1 to finish.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-while pgrep -f "scripts/fork_lora_1b.sh" >/dev/null; do sleep 30; done
 export CUDA_VISIBLE_DEVICES=${GPU:-0} PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 VPY=$HOME/miniconda3/envs/implicit-vllm/bin/python; HPY=$HOME/miniconda3/envs/ICCV/bin/python
 PAIRS=data/fork_pairs/olmo2-1b-sft_train1000.jsonl; OUT=/data/azfarm/siddhant_fork_lora; R=results/fork_lora
