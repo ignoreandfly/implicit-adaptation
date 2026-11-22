@@ -112,6 +112,19 @@ Context for small models: majority vote helps only on questions where the model 
 than half the time and can hurt otherwise ([When SC Hurts](https://arxiv.org/abs/2611.11201),
 [SLM-MUX](https://arxiv.org/abs/2510.05077)); our dev gain is an average over both regimes.
 
+### Test subset (500 GSM8K test problems, `data/gsm8k/test500.jsonl`)
+
+| Method | Acc. |
+|---|---|
+| Base greedy zero-shot | 9.6% |
+| Base 8-shot (from full-test run) | 32.2% |
+| Base zero-shot CoT | 37.0% |
+| **Base self-consistency (n = 10) on zero-shot CoT, majority** | **43.2%** (+6.2 vs zero-shot CoT, McNemar p = 0.002) |
+| … + self-certainty Borda vote / entropy-weighted vote / DeepConf | 43.6–44.4% (≈ majority; the +3 on dev did not hold) |
+| … + Think@n (DTR) / EBA | 35.0% / 39.4% |
+| oracle@10 | 66.0% |
+| SFT / DPO / Instruct greedy (from full-test runs) | 60.4% / 59.0% / 67.8% |
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
