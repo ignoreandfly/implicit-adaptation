@@ -3,11 +3,11 @@
   "samples_per_problem": 1,
   "acc_strict": 0.66,
   "acc_lenient": 0.675,
-  "format_rate": 0.78,
-  "mean_steps": 2.815,
-  "step_acc": 0.8099467140319716,
-  "mean_gen_tokens": 127.53,
-  "truncation_rate": 0.005,
+  "format_rate": 0.785,
+  "mean_steps": 2.795,
+  "step_acc": 0.8121645796064401,
+  "mean_gen_tokens": 125.805,
+  "truncation_rate": 0.0,
   "acc_chosen": 0.675,
   "method": "rl_rules",
   "model": "olmo2-1b-sft",
@@ -21,7 +21,7 @@
     "few_shot": 0,
     "limit": null,
     "max_new_tokens": 512,
-    "batch_problems": 4,
+    "batch_problems": 2,
     "seed": 0,
     "tag": "forkonly_dpo_major_lr3e-4_e2",
     "out": null,
@@ -74,6 +74,6 @@
     "fm_chunk": 32,
     "fmt": "chat"
   },
-  "seconds": 118.3,
-  "git": "2f6a7a988edf5ac135a432dab1a9268cd3f41685"
+  "seconds": 181.4,
+  "git": "f4f15319d7eb68357ecb5950bc816067dde6638c"
 }
