@@ -168,6 +168,26 @@ DPO→Instruct (RLVR alone) 4.31% / 0.05%; SFT→Instruct 7.55% / 0.28%; 83–94
 (ReasonMaxxer, Qwen2.5-1.5B base→GRPO: 2.09% / 0.02%.) DPO changes more decisions than RLVR; neither stage
 chooses tokens outside the earlier model's top-5.
 
+### Fork-contrastive LoRA: results so far (1B, GSM8K)
+
+On SFT (dev): unbounded loss diverged (round 1); tiny learning rates left the model unchanged (round 2); bounded
+token-level DPO at lr 1e-4 (round 3): majority 68.0%, gold 70.0%, shuffled 63.0% vs SFT 69.5% — labels carry signal
+(shuffled hurts) but no gain over SFT, merged or fork-only (fork-only: gold 72.5%, majority 69.5%, shuffled 66.0% vs
+control 72.0%). Full-data (7,273 questions) retraining in progress.
+
+On Base + zero-shot CoT (1,000 training questions, bounded DPO, lr 1e-4, 2 epochs):
+
+| Variant | test500 | full test (1,319) |
+|---|---|---|
+| Base + CoT baseline | 37.0% | 38.1% |
+| shuffled labels (control) | 35.4% | |
+| majority labels (label-free) | 37.6% | |
+| gold labels, seed 0 / seed 1 | 40.2% / 39.2% | 40.3% (p = 0.11 vs baseline) |
+
+Gold vs shuffled on test500: +4.8, McNemar p = 0.037. A consistent but small gain (~+2) with gold labels that does not
+reach significance against the untrained baseline; the label-free version gives nothing on Base (majority labels were
+correct on only 46% of training questions). Pending: the RFT baseline (fine-tune on own correct samples).
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
