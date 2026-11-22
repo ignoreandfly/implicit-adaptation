@@ -1,0 +1,154 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.7_n8",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "lr": 0.0001,
+    "epochs": 2,
+    "accum": 8,
+    "rank": 32,
+    "max_len": 640,
+    "seed": 0,
+    "out": "/data/azfarm/siddhant_fork_lora/base_rft_gold"
+  },
+  "train_solutions": 2183,
+  "log": [
+    {
+      "step": 20,
+      "epoch": 0,
+      "loss": 0.22137340903282166
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "loss": 0.2119496762752533
+    },
+    {
+      "step": 60,
+      "epoch": 0,
+      "loss": 0.18784916400909424
+    },
+    {
+      "step": 80,
+      "epoch": 0,
+      "loss": 0.2498723566532135
+    },
+    {
+      "step": 100,
+      "epoch": 0,
+      "loss": 0.32571083307266235
+    },
+    {
+      "step": 120,
+      "epoch": 0,
+      "loss": 0.21622014045715332
+    },
+    {
+      "step": 140,
+      "epoch": 0,
+      "loss": 0.3000122904777527
+    },
+    {
+      "step": 160,
+      "epoch": 0,
+      "loss": 0.3731064796447754
+    },
+    {
+      "step": 180,
+      "epoch": 0,
+      "loss": 0.21089662611484528
+    },
+    {
+      "step": 200,
+      "epoch": 0,
+      "loss": 0.06928002834320068
+    },
+    {
+      "step": 220,
+      "epoch": 0,
+      "loss": 0.284129798412323
+    },
+    {
+      "step": 240,
+      "epoch": 0,
+      "loss": 0.18272143602371216
+    },
+    {
+      "step": 260,
+      "epoch": 0,
+      "loss": 0.3418968617916107
+    },
+    {
+      "step": 280,
+      "epoch": 1,
+      "loss": 0.34453481435775757
+    },
+    {
+      "step": 300,
+      "epoch": 1,
+      "loss": 0.1461782157421112
+    },
+    {
+      "step": 320,
+      "epoch": 1,
+      "loss": 0.3090927302837372
+    },
+    {
+      "step": 340,
+      "epoch": 1,
+      "loss": 0.3573218584060669
+    },
+    {
+      "step": 360,
+      "epoch": 1,
+      "loss": 0.11924472451210022
+    },
+    {
+      "step": 380,
+      "epoch": 1,
+      "loss": 0.3309646546840668
+    },
+    {
+      "step": 400,
+      "epoch": 1,
+      "loss": 0.28956884145736694
+    },
+    {
+      "step": 420,
+      "epoch": 1,
+      "loss": 0.306161493062973
+    },
+    {
+      "step": 440,
+      "epoch": 1,
+      "loss": 0.40528345108032227
+    },
+    {
+      "step": 460,
+      "epoch": 1,
+      "loss": 0.25316086411476135
+    },
+    {
+      "step": 480,
+      "epoch": 1,
+      "loss": 0.4386294186115265
+    },
+    {
+      "step": 500,
+      "epoch": 1,
+      "loss": 0.4997209906578064
+    },
+    {
+      "step": 520,
+      "epoch": 1,
+      "loss": 0.27490484714508057
+    },
+    {
+      "step": 540,
+      "epoch": 1,
+      "loss": 0.3120824098587036
+    }
+  ]
+}

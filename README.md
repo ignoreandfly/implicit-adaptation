@@ -183,10 +183,11 @@ On Base + zero-shot CoT (1,000 training questions, bounded DPO, lr 1e-4, 2 epoch
 | shuffled labels (control) | 35.4% | |
 | majority labels (label-free) | 37.6% | |
 | gold labels, seed 0 / seed 1 | 40.2% / 39.2% | 40.3% (p = 0.11 vs baseline) |
+| **RFT baseline: LoRA fine-tuned on the model's own correct samples (gold)** | **45.6%** (dev 51.5%) | |
 
 Gold vs shuffled on test500: +4.8, McNemar p = 0.037. A consistent but small gain (~+2) with gold labels that does not
 reach significance against the untrained baseline; the label-free version gives nothing on Base (majority labels were
-correct on only 46% of training questions). Pending: the RFT baseline (fine-tune on own correct samples).
+correct on only 46% of training questions). **The RFT baseline beats the fork-contrastive LoRA by 5.4 points on test500 (same 1,000 questions, same LoRA settings): the fork-local training is not what helps; whole correct self-generated solutions are a much stronger signal.** Label-free (majority) RFT pending.
 
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
