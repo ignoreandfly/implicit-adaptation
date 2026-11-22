@@ -23,11 +23,7 @@ for lab in gold majority; do
     echo "  $tag $split $(grep -oE '"acc_lenient": [0-9.]+' $L/eval_${tag}_$split.log | tail -1)"
   done
 done
-# SFT control on test500 through the same decoder (dev control = 0.720)
-g=$(pick_gpu 6000)
-CUDA_VISIBLE_DEVICES=$g $HPY -m methods.run --method rl_rules --rl_beta 0 --model olmo2-1b-sft --split test500 --max_new_tokens 512 \
-  --batch_problems 2 --out $R/sft_control/test500 > $L/eval_sft_control_test500.log 2>&1
-echo "  sft control test500 $(grep -oE '"acc_lenient": [0-9.]+' $L/eval_sft_control_test500.log | tail -1)"
+# SFT control on test500 already measured: 0.598 (same decoder)
 git add $R scripts/queue_rft_sft.sh 2>/dev/null
 git commit -q -m "RFT on 1B SFT (gold / majority): dev + test500
 

@@ -1,0 +1,49 @@
+{
+  "judge": "base",
+  "pool": "results/olmo2-1b-sft/gsm8k/0shot_sub500_n64_t0.7/test.generations.jsonl",
+  "margin": 1,
+  "results": {
+    "4": {
+      "consulted_close": 250,
+      "acc_majority": 0.596,
+      "acc_judge_top2": 0.456,
+      "rescue_judge_top2": 19,
+      "harm_judge_top2": 89,
+      "acc_judge_close": 0.558,
+      "rescue_judge_close": 17,
+      "harm_judge_close": 36,
+      "oracle": 0.754,
+      "wrong_majority_with_gold_in_pool": 79,
+      "wm_fixed_judge_close": 17,
+      "wm_fixed_judge_top2": 19
+    },
+    "8": {
+      "consulted_close": 163,
+      "acc_majority": 0.678,
+      "acc_judge_top2": 0.45,
+      "rescue_judge_top2": 20,
+      "harm_judge_top2": 134,
+      "acc_judge_close": 0.678,
+      "rescue_judge_close": 17,
+      "harm_judge_close": 17,
+      "oracle": 0.842,
+      "wrong_majority_with_gold_in_pool": 82,
+      "wm_fixed_judge_close": 17,
+      "wm_fixed_judge_top2": 20
+    },
+    "16": {
+      "consulted_close": 109,
+      "acc_majority": 0.736,
+      "acc_judge_top2": 0.46,
+      "rescue_judge_top2": 21,
+      "harm_judge_top2": 159,
+      "acc_judge_close": 0.726,
+      "rescue_judge_close": 13,
+      "harm_judge_close": 18,
+      "oracle": 0.908,
+      "wrong_majority_with_gold_in_pool": 86,
+      "wm_fixed_judge_close": 13,
+      "wm_fixed_judge_top2": 21
+    }
+  }
+}
