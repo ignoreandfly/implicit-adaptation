@@ -139,13 +139,15 @@ on an L4 may run out of memory. Use a Deep Learning VM image (CUDA preinstalled)
 
 ```bash
 # from a machine with gcloud installed and authenticated (gcloud auth login; gcloud config set project <ID>)
+# A100 (for the training steps). For an L4 instead use:
+#   --machine-type=g2-standard-8 --accelerator=type=nvidia-l4,count=1
+# Add --provisioning-model=SPOT for ~1/3 of the price (can be preempted; the script is resumable).
 gcloud compute instances create olmo-7b \
-  --zone=us-central1-a --machine-type=a2-highgpu-1g \          # or g2-standard-8 for an L4
-  --accelerator=type=nvidia-tesla-a100,count=1 \               # or type=nvidia-l4,count=1
+  --zone=us-central1-a --machine-type=a2-highgpu-1g \
+  --accelerator=type=nvidia-tesla-a100,count=1 \
   --image-family=common-cu124-ubuntu-2204-py310 --image-project=deeplearning-platform-release \
   --boot-disk-size=200GB --maintenance-policy=TERMINATE \
   --metadata=install-nvidia-driver=True
-  # add --provisioning-model=SPOT for ~1/3 of the price (can be preempted; the script is resumable)
 gcloud compute ssh olmo-7b --zone=us-central1-a
 ```
 (Check GPU quota in the chosen region first; image family names change over time —
