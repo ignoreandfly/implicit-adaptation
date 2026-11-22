@@ -75,6 +75,8 @@ def load_swaps(tok, path, m):
 
 def run(model, tok, texts, answers, task, args, ends):
     fmt = args.fmt
+    if args.prefix:  # e.g. zero-shot CoT for base models; the prefix is kept in the scored output
+        texts = [t + args.prefix for t in texts]
     V = model.get_output_embeddings().weight.shape[0]
     up, down, thr = load_table(tok, args.rl_table, args.rl_k)
     thr = args.rl_fork_thr or thr
@@ -136,7 +138,8 @@ def run(model, tok, texts, answers, task, args, ends):
     for b in range(0, len(texts), bs):
         gen = manual_decode(model, tok, texts[b:b + bs], args.max_new_tokens, step, ends, fmt=fmt)
         for i, ids in enumerate(gen):
-            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens, fmt=fmt)], "chosen": 0})
+            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens, fmt=fmt,
+                                            prefix=args.prefix.lstrip())], "chosen": 0})
         print(f"{b + len(gen)}/{len(texts)}  fork share {stats['fork_steps'] / max(1, stats['steps']):.3f}", flush=True)
     return res
 
@@ -177,7 +180,8 @@ def _oracle(model, expert, tok, texts, answers, task, args, ends, thr, stats):
             att = torch.cat([att, torch.ones((B, 1), dtype=att.dtype, device="cuda")], 1)
             pos = pos[:, -1:] + 1
         for i, ids in enumerate(gen):
-            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens, fmt=fmt)], "chosen": 0})
+            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens, fmt=fmt,
+                                            prefix=args.prefix.lstrip())], "chosen": 0})
         print(f"{b + B}/{len(texts)}  expert-token share {stats['fork_steps'] / max(1, stats['steps']):.3f}", flush=True)
     return res
 

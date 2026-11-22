@@ -34,6 +34,7 @@ def main():
     ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--max_tokens", type=int, default=512)
     ap.add_argument("--gpu_memory_utilization", type=float, default=0.5)
+    ap.add_argument("--prefix", default="", help="text forced after the prompt, e.g. \" Let's think step by step.\" for base")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -47,20 +48,21 @@ def main():
     rows = read_jsonl(f"data/gsm8k/{args.split}.jsonl")[args.offset:args.offset + args.n]
     llm = LLM(model=hf_id, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory_utilization,
               max_model_len=4096, enable_prefix_caching=True, seed=0)
-    p_ids = [tok(prompts.build_prompt(fmt, r["question"], [], tok), add_special_tokens=(fmt == "plain")).input_ids
-             for r in rows]
+    p_ids = [tok(prompts.build_prompt(fmt, r["question"], [], tok) + args.prefix,
+                 add_special_tokens=(fmt == "plain")).input_ids for r in rows]
+    stop = prompts.STOP_STRINGS if fmt == "plain" else None  # base models: end at a blank line
     ans = lambda text, gold: task.verify(text, gold)["lenient_answer"]
 
     # 1. label samples
     lab = llm.generate([TokensPrompt(prompt_token_ids=p) for p in p_ids],
                        SamplingParams(n=args.n_label, temperature=args.temperature, top_p=1.0,
-                                      max_tokens=args.max_tokens, seed=1))
+                                      max_tokens=args.max_tokens, seed=1, stop=stop))
     label_answers = [[ans(c.text, r["answer"]) for c in o.outputs] for o, r in zip(lab, rows)]
     print("label samples done", flush=True)
 
     # 2. greedy with top-2 logprobs
     gr = llm.generate([TokensPrompt(prompt_token_ids=p) for p in p_ids],
-                      SamplingParams(temperature=0.0, max_tokens=args.max_tokens, logprobs=2))
+                      SamplingParams(temperature=0.0, max_tokens=args.max_tokens, logprobs=2, stop=stop))
     greedy, forks = [], []
     for o in gr:
         c = o.outputs[0]
@@ -84,7 +86,7 @@ def main():
                 reqs.append(TokensPrompt(prompt_token_ids=p + ids[:t] + [tk]))
                 keys.append((qi, fi, which, t))
     outs = llm.generate(reqs, SamplingParams(n=args.m, temperature=args.temperature, top_p=1.0,
-                                             max_tokens=args.max_tokens, seed=2))
+                                             max_tokens=args.max_tokens, seed=2, stop=stop))
     cont = {}
     for (qi, fi, which, t), o in zip(keys, outs):
         ids = greedy[qi][0]
