@@ -66,10 +66,10 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 | 5 | EM-INF (per-step logit adjustment that lowers entropy) | [Agarwal et al., NeurIPS 2025](https://arxiv.org/abs/2505.15134) | Qwen 7B/32B | low–medium |
 | 6 | EAGer / entropy-gated branching (branch only at high-entropy tokens) | [EAGer 2025](https://arxiv.org/abs/2510.11170); [Entropy-gated branching](https://arxiv.org/abs/2503.21961) | small LLMs, +4.6% over greedy | medium |
 | 7 | Thought-level self-certainty maximization (pick the most certain continuation per step) | [arXiv 2603.07159](https://arxiv.org/abs/2603.07159) | GSM8K/MATH500; up to 4× greedy on Qwen-1.5B | medium |
-| 8 | Power sampling (MCMC on the sharpened base distribution; base matches GRPO) | [Karan & Du, ICLR 2026](https://arxiv.org/abs/2510.14901); cheaper: [token-level](https://arxiv.org/abs/2601.21590), [entropy-guided](https://arxiv.org/abs/2606.09926) | Qwen2.5 base models; MATH500 | high (needs vLLM) |
+| 8 | Power sampling (MCMC on the sharpened base distribution; base matches GRPO) | [Karan & Du, ICLR 2026](https://arxiv.org/abs/2510.14901); cheaper: [token-level](https://arxiv.org/abs/2601.21590), [entropy-guided](https://arxiv.org/abs/2606.09926) | Qwen2.5 base models; MATH500 | high; Power-SMC variant done (below self-consistency at 1B) |
 | 9 | CoT steering vector (add a "think step by step" direction to the residual stream) | [Zhang & Viteri 2024](https://arxiv.org/abs/2409.14026); SAE-free: [2505.15634](https://arxiv.org/abs/2505.15634) | Llama3-8B, Mistral-7B | low–medium |
 | 10 | φ-Decoding (foresight sampling) | [Xu et al., ACL 2025](https://arxiv.org/abs/2503.13288) | LLaMA3.1-8B, +14% over CoT | high |
-| 11 | Power-SMC (particle-filter power sampling in one batched decode; 1.4–3.3× latency vs 16–28× for MCMC) | [Azizi et al. 2026](https://arxiv.org/abs/2602.10273) | MATH500, three models | medium (vLLM/HF) |
+| 11 | Power-SMC (particle-filter power sampling in one batched decode; 1.4–3.3× latency vs 16–28× for MCMC) | [Azizi et al. 2026](https://arxiv.org/abs/2602.10273) | MATH500, three models | done: 37–40.5% (no gain over zero-shot CoT) |
 | 12 | Depth-entropy guided power sampling (favor late layer-wise entropy collapse) | [Meng et al. 2026](https://arxiv.org/abs/2607.09693) | three models; ≈ GRPO in-domain | high |
 | 13 | Better aggregation than majority vote: prefix-consistency weighted vote (regenerate from truncated prefixes) | [Iwase et al. 2026](https://arxiv.org/abs/2605.07654) | five reasoning models; MV accuracy at median 4.6× fewer tokens | medium |
 | 14 | Better aggregation: embedding-based agreement (cluster samples in hidden-state space) | [Ontalvilla et al. 2026](https://arxiv.org/abs/2606.12003) | math, code, summarization | rescoring only |
@@ -90,6 +90,8 @@ Status: **done** = results in `results/screen/`, **running** = current batch, **
 | Self-consistency + self-certainty Borda vote (Kang et al.) on the same 10 samples | 54.0% | 1308 |
 | Self-consistency + DeepConf filter (keep top 90%, confidence-weighted vote) | 52.0–52.5% | 1308 |
 | Self-consistency + Think@n (top half by deep-thinking ratio, then vote) | 39.5–42.5% | 1308 |
+| Power-SMC (α = 4) on zero-shot CoT, N = 10 / 16, paper's weight-sampled output | 37.0% / 40.5% | 980 / 1426 |
+| Power-SMC N = 16, majority vote over particles (particles collapse to ~4 distinct outputs) | 47.5% | 1426 |
 | Zero-shot CoT ("Let's think step by step.") | 41.0% | 123 |
 | CoT-decoding, k = 10, aggregated confidence | 40.0% | 829 |
 | CoT-decoding, k = 10, max confidence | 29.5% | 829 |
