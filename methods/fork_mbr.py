@@ -44,7 +44,8 @@ def _greedy(model, tok, id_lists, max_new, ends, fmt):
     gen, tops, done = [[] for _ in range(B)], [[] for _ in range(B)], [False] * B
     for _ in range(max_new):
         with torch.no_grad():
-            out = model(input_ids=cur, attention_mask=att, position_ids=pos, past_key_values=past, use_cache=True)
+            out = model(input_ids=cur, attention_mask=att, position_ids=pos, past_key_values=past, use_cache=True,
+                        logits_to_keep=1)  # only the last position's logits (the prompt pass is long)
         past = out.past_key_values
         p = torch.softmax(out.logits[:, -1].float(), -1)
         v, ix = p.topk(2, -1)
@@ -90,7 +91,9 @@ def run(model, tok, texts, answers, task, args, ends):
             for t in chosen:
                 branch_inputs.append(p_ids[i] + gen[i][:t] + [tops[i][t][1]])
                 owner.append((i, t))
-        bgen, _ = _greedy(model, tok, branch_inputs, args.max_new_tokens, ends, fmt) if branch_inputs else ([], [])
+        bgen = []
+        for c in range(0, len(branch_inputs), 32):  # branches in chunks to bound memory
+            bgen += _greedy(model, tok, branch_inputs[c:c + 32], args.max_new_tokens, ends, fmt)[0]
         per = {i: [] for i in range(len(batch))}
         for (i, t), g in zip(owner, bgen):
             per[i].append((t, gen[i][:t] + [tops[i][t][1]] + g, tops[i][t][2], len(g) + 1))
