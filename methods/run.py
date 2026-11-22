@@ -24,7 +24,7 @@ from evaluation.generate import stop_ids
 from evaluation.metrics import aggregate
 from tasks import get_task
 
-METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive"]
+METHODS = ["cot_decoding", "greedy", "dola", "budget_forcing", "sample", "cfg", "contrastive", "eager", "tlsc"]
 
 
 def main():
@@ -63,6 +63,12 @@ def main():
     ap.add_argument("--cd_beta", type=float, default=0.5)
     ap.add_argument("--cd_alpha", type=float, default=0.1)
     ap.add_argument("--dropout", type=float, default=0.2)
+    # eager (uses --n as the per-prompt sequence budget M)
+    ap.add_argument("--eager_theta", type=float, default=2.0)
+    ap.add_argument("--eager_tau", type=float, default=0.6)
+    # tlsc: thought-level self-certainty (uses --temperature for candidates)
+    ap.add_argument("--tlsc_k", type=int, default=4)
+    ap.add_argument("--tlsc_steps", type=int, default=40)
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
