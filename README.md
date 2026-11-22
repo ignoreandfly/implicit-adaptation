@@ -175,6 +175,17 @@ another question's solution (Hewitt's exact test) all four models are at 88–94
 
 ### Future directions
 
+- **Planned method: fork-contrastive self-distillation (LoRA).** Build on ReasonMaxxer
+  ([arXiv 2605.06241](https://arxiv.org/abs/2605.06241): LoRA trained only at high-entropy decision points ≈ RL)
+  with two changes from our findings: (1) training pairs are *minimal counterfactual pairs* from fork branching
+  (same prefix, one different token at a fork), each fork token scored by several sampled continuations;
+  (2) labels come from the model's own majority vote (held-out samples), not gold answers. Goal: compress
+  self-consistency into one greedy pass (1x) on SFT, compared stage-by-stage with DPO/Instruct. Controls and
+  ablations: gold-label version, ReasonMaxxer-style independent rollouts, shuffled labels, random-position forks,
+  full-sequence majority distillation; track pass@k / maj@k / diversity for collapse. Closest prior per a
+  literature check: ReasonMaxxer (gold labels, independent rollouts), TTRL and self-training with majority
+  rewards (sequence-level RL; collapse risk), self-consistency preference optimization; no prior work found
+  combining all three ingredients.
 - Ideas that failed or were inconclusive at 1B but may work at larger scale are tracked in [SCALE_NOTES.md](SCALE_NOTES.md).
 
 - **Run the winning methods on OLMo 2 1B SFT (and DPO / Instruct).** Majority vote only helps on
