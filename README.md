@@ -190,6 +190,41 @@ Gold vs shuffled on test500: +4.8, McNemar p = 0.037. A consistent but small gai
 reach significance against the untrained baseline; the label-free version gives nothing on Base (majority labels were
 correct on only 46% of training questions). **The RFT baseline beats the fork-contrastive LoRA by 5.4 points on test500 (same 1,000 questions, same LoRA settings): the fork-local training is not what helps; whole correct self-generated solutions are a much stronger signal.** Label-free (majority) RFT also helps significantly (+4.4), recovering ~70% of what 10-sample self-consistency gives on this setup (43.2%) at 1x inference cost — even though the base model's majority answer was right on only 46% of the training questions.
 
+### Self-SSFT: global forking tokens trained on the model's own traces (1B SFT, test500)
+
+SSFT (Jia et al., ICLR 2026, [arXiv 2510.05132](https://arxiv.org/abs/2510.05132)) adds tokens `<think1..N>` and
+trains them by **set matching**: each question's distinct traces are matched one-to-one to the tags by minimum loss,
+and each tag is trained only on its matched trace, so that each tag starts a different reasoning mode. The paper
+used 32B models and teacher traces. We test it at 1B with the model's **own** RFT traces (`train/ssft_lora.py`,
+`scripts/gcp_ssft.sh`): 8 SFT samples (T 0.7) on 1,500 training questions, up to 4 most-distinct correct
+(or majority-agreeing) traces per question, N = 4 tags, LoRA r32 + tag embeddings, 2 epochs. Controls on the same
+traces: no tags (= RFT, `rft_*_m4`), random tag assignment (`ssft_gold_random`), and standard RFT on all correct
+samples. One vLLM pipeline for all models; equal compute for voting = 4 paths (one greedy path per tag vs 4 samples
+at T 0.7); `analysis/ssft_cons.py`.
+
+| Model | Pass@1 (greedy; tagged models: `<think1>`) | Vote@4 | Pass@4 | Distinct answers / 4 |
+|---|---|---|---|---|
+| SFT | 58.8 | 61.6 | 75.0 | 2.47 |
+| RFT, same capped traces (gold) | 58.2 | 61.8 | 76.4 | 2.30 |
+| RFT, all correct samples (gold) | 57.2 | 64.0 | 75.0 | 2.23 |
+| **Self-SSFT (gold)** | **60.2** | 63.2 | 76.8 | 1.89 |
+| Self-SSFT, random tag assignment | 58.0 | 58.8 | 65.2 | 1.29 |
+| Self-SSFT (majority, label-free) | 59.4 | 62.2 | 75.0 | 1.89 |
+| RFT, same capped traces (majority) | 55.6 | 62.8 | 77.6 | 2.29 |
+| Instruct (RL) | 66.6 | 74.4 | 84.8 | 1.84 |
+
+McNemar on Vote@4: Self-SSFT vs RFT (same traces) p = 0.53, vs RFT (all) p = 0.76, **vs random tags p = 0.012**;
+label-free Self-SSFT vs label-free RFT p = 0.83. Training: tag usage stayed balanced (~145 traces per tag per
+logging window), and 52–59% of questions kept the same tag assignment across epochs.
+
+**Takeaways.** (1) The matching is what makes the tags differ: random assignment leaves the four tags nearly
+identical (1.29 distinct answers) and votes significantly worse. (2) No mode collapse. (3) But at 1B on GSM8K the
+tags do **not** beat temperature sampling: one greedy path per tag is slightly more accurate per path but less
+diverse (1.89 vs 2.30 distinct answers), so Vote@4 is the same as RFT's maj@4. (4) `<think1>` alone is +2.0 over
+RFT on the same traces (60.2 vs 58.2), not yet significance-tested. The paper's central claim (learned global forks
+diversify better than temperature) does not reproduce at this scale. In this pipeline RFT also did not improve over
+SFT greedy, unlike the earlier HF-decoder run (59.8 → 63.4), so the two setups are not directly comparable.
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
