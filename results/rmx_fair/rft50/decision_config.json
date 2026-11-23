@@ -1,0 +1,124 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.6_n20",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "format": null,
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "n_problems": 50,
+    "trim": 0.8,
+    "tau": 1.4,
+    "tau_pct": null,
+    "gate": "all",
+    "margin_thr": 0.2,
+    "gamma": 2.0,
+    "share": null,
+    "kl": 0.2,
+    "kl_scope": "all",
+    "adv_clip": 2.5,
+    "lr": 0.0001,
+    "epochs": 2,
+    "max_steps": 149,
+    "warmup": 50,
+    "accum": 8,
+    "rank": 32,
+    "shuffle": false,
+    "positive_only": true,
+    "rft_weights": false,
+    "save_every": 50,
+    "max_len": 1024,
+    "limit": null,
+    "seed": 42,
+    "out": "/data/azfarm/siddhant_fork_lora/rmxfair_rft50"
+  },
+  "stats": {
+    "skipped_uniform": 53,
+    "problems": 50,
+    "rollouts_selected": 1000,
+    "rollouts_after_trim": 800,
+    "pos_rollouts": 444
+  },
+  "threshold": -1.0,
+  "decision_share": 1.0,
+  "steps": 111,
+  "log": [
+    {
+      "step": 10,
+      "epoch": 0,
+      "l_dec": 0.545937716960907,
+      "l_kl": 0.0005466836737468839,
+      "lr": 2.2000000000000003e-05
+    },
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": 0.3318101465702057,
+      "l_kl": 0.008905342780053616,
+      "lr": 4.2e-05
+    },
+    {
+      "step": 30,
+      "epoch": 0,
+      "l_dec": 0.31852880120277405,
+      "l_kl": 0.01151570025831461,
+      "lr": 6.2e-05
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "l_dec": 0.18710406124591827,
+      "l_kl": 0.014957193285226822,
+      "lr": 8.2e-05
+    },
+    {
+      "step": 50,
+      "epoch": 0,
+      "l_dec": 0.21088995039463043,
+      "l_kl": 0.008224746212363243,
+      "lr": 0.0001
+    },
+    {
+      "step": 60,
+      "epoch": 1,
+      "l_dec": 0.19353263080120087,
+      "l_kl": 0.005361639428883791,
+      "lr": 8.387096774193549e-05
+    },
+    {
+      "step": 70,
+      "epoch": 1,
+      "l_dec": 0.30265530943870544,
+      "l_kl": 0.005036424845457077,
+      "lr": 6.774193548387096e-05
+    },
+    {
+      "step": 80,
+      "epoch": 1,
+      "l_dec": 0.24038578569889069,
+      "l_kl": 0.0028525397647172213,
+      "lr": 5.161290322580645e-05
+    },
+    {
+      "step": 90,
+      "epoch": 1,
+      "l_dec": 0.0255320742726326,
+      "l_kl": 0.006376828998327255,
+      "lr": 3.548387096774194e-05
+    },
+    {
+      "step": 100,
+      "epoch": 1,
+      "l_dec": 0.11772444099187851,
+      "l_kl": 0.0061997342854738235,
+      "lr": 1.935483870967742e-05
+    },
+    {
+      "step": 110,
+      "epoch": 1,
+      "l_dec": 0.20079918205738068,
+      "l_kl": 0.0050089405849576,
+      "lr": 3.225806451612903e-06
+    }
+  ]
+}

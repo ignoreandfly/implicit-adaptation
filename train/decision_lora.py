@@ -125,6 +125,8 @@ def main():
     ap.add_argument("--kl", type=float, default=0.2)
     ap.add_argument("--kl_scope", choices=["all", "response"], default="all")
     ap.add_argument("--adv_clip", type=float, default=2.5)
+    ap.add_argument("--beta_neg", type=float, default=1.0,
+                    help="scale for negative advantages (ReasonMaxxer code's --beta_neg; < 1 tames the push-down)")
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--epochs", type=int, default=2)
     ap.add_argument("--max_steps", type=int, default=149)
@@ -221,6 +223,8 @@ def main():
             y = ids[0, 1:]
             D = torch.zeros(len(y), dtype=torch.bool, device="cuda"); D[e["P"] - 1:] = e["D"].cuda()
             a = max(-args.adv_clip, min(args.adv_clip, e["A"]))
+            if a < 0:
+                a *= args.beta_neg
             if args.gate == "weight":   # soft: A_t = A * w_t over all response tokens; KL weighted by 1 - w_t
                 W = torch.zeros(len(y), device="cuda"); W[e["P"] - 1:] = e["S"].cuda()
                 R = torch.zeros(len(y), dtype=torch.bool, device="cuda"); R[e["P"] - 1:] = True

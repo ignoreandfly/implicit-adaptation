@@ -1,0 +1,82 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+greedy heldout500 (500 problems, chunks of 50):   0%|          | 0/10 [00:00<?, ?it/s]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy heldout500 (500 problems, chunks of 50):  20%|██        | 2/10 [00:38<02:33, 19.21s/it]8/50
+16/50
+24/50
+32/50
+40/50
+greedy heldout500 (500 problems, chunks of 50):  20%|██        | 2/10 [00:50<02:33, 19.21s/it]48/50
+50/50
+8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy heldout500 (500 problems, chunks of 50):  40%|████      | 4/10 [01:13<01:48, 18.12s/it]8/50
+16/50
+24/50
+32/50
+40/50
+greedy heldout500 (500 problems, chunks of 50):  40%|████      | 4/10 [01:30<01:48, 18.12s/it]48/50
+50/50
+8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy heldout500 (500 problems, chunks of 50):  60%|██████    | 6/10 [01:49<01:12, 18.11s/it]8/50
+16/50
+24/50
+32/50
+greedy heldout500 (500 problems, chunks of 50):  60%|██████    | 6/10 [02:00<01:12, 18.11s/it]40/50
+48/50
+50/50
+8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy heldout500 (500 problems, chunks of 50):  80%|████████  | 8/10 [02:22<00:34, 17.44s/it]8/50
+16/50
+24/50
+32/50
+40/50
+greedy heldout500 (500 problems, chunks of 50):  80%|████████  | 8/10 [02:40<00:34, 17.44s/it]48/50
+50/50
+greedy heldout500 (500 problems, chunks of 50):  90%|█████████ | 9/10 [02:45<00:18, 18.65s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy heldout500 (500 problems, chunks of 50): 100%|██████████| 10/10 [03:03<00:00, 18.32s/it]
+{
+ "acc_strict": 0.002,
+ "acc_lenient": 0.418,
+ "format_rate": 0.002,
+ "mean_steps": 2.266,
+ "mean_gen_tokens": 80.794,
+ "truncation_rate": 0.002,
+ "acc_chosen": 0.418,
+ "seconds": 183.2
+}
