@@ -55,7 +55,7 @@ model () {  # tag, tagged(0/1), trainer module, args...
   fi
   [ -f $CK/$tag/model.safetensors ] || { echo "TRAINING FAILED $tag (logs/ssft_train_$tag.log)"; return; }
   echo "trained $tag: $(grep -m1 'questions\|training solutions' logs/ssft_train_$tag.log)"
-  mkdir -p $R/configs; cp $CK/$tag/*_config.json $R/configs/$tag.json 2>/dev/null
+  mkdir -p $R/configs; cp $CK/$tag/ssft_config.json $R/configs/$tag.json 2>/dev/null || cp $CK/$tag/rft_config.json $R/configs/$tag.json 2>/dev/null
   has eval && evals $tag $CK/$tag $tg
   done_evals $tag $tg && [ "${KEEP:-0}" != 1 ] && rm -rf $CK/$tag
 }

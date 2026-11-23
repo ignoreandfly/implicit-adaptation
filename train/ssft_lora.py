@@ -111,6 +111,7 @@ def main():
     ap.add_argument("--m", type=int, default=4, help="max traces per question (<= n_tags)")
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--emb_lr", type=float, default=1e-3, help="lr of the new tag embeddings")
+    ap.add_argument("--tag_noise", type=float, default=0.1, help="init noise of the tag embeddings (x embedding std)")
     ap.add_argument("--epochs", type=int, default=2)
     ap.add_argument("--accum", type=int, default=8, help="questions per optimizer step")
     ap.add_argument("--rank", type=int, default=32)
@@ -143,12 +144,13 @@ def main():
         if len(tok) > emb.weight.shape[0]:
             model.resize_token_embeddings(len(tok), pad_to_multiple_of=64)
             emb = model.get_input_embeddings()
-        with torch.no_grad():   # distinct starting points near the mean embedding, so tags are not interchangeable
-            base = emb.weight[: tag_ids[0]].float()
-            mu, sd = base.mean(0), base.std(0)
+        with torch.no_grad():   # start each tag as the newline token + small distinct noise (harmless in-place, not interchangeable)
+            nl = tok("\n", add_special_tokens=False).input_ids[-1]
+            base = emb.weight[nl].float(); sd = emb.weight[: tag_ids[0]].float().std(0)
             g = torch.Generator(device="cpu").manual_seed(args.seed)
             for t in tag_ids:
-                emb.weight[t] = (mu + sd * torch.randn(mu.shape, generator=g).to(mu.device)).to(emb.weight.dtype)
+                emb.weight[t] = (base + args.tag_noise * sd * torch.randn(base.shape, generator=g).to(base.device)
+                                 ).to(emb.weight.dtype)
 
     model.gradient_checkpointing_enable(); model.enable_input_require_grads()
     model = get_peft_model(model, LoraConfig(r=args.rank, lora_alpha=2 * args.rank, lora_dropout=0.0,
