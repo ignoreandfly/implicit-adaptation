@@ -1,0 +1,168 @@
+{
+  "questions": 500,
+  "K": 4,
+  "systems": {
+    "ssft_majority": {
+      "1": {
+        "vote": 0.594,
+        "pass": 0.594,
+        "distinct_answers": 1.0
+      },
+      "2": {
+        "vote": 0.594,
+        "pass": 0.686,
+        "distinct_answers": 1.364
+      },
+      "3": {
+        "vote": 0.62,
+        "pass": 0.736,
+        "distinct_answers": 1.68
+      },
+      "4": {
+        "vote": 0.622,
+        "pass": 0.75,
+        "distinct_answers": 1.89
+      },
+      "per_path_acc": [
+        0.594,
+        0.584,
+        0.548,
+        0.554
+      ]
+    },
+    "ssft_majority_T0.7": {
+      "1": {
+        "vote": 0.55,
+        "pass": 0.55,
+        "distinct_answers": 1.0
+      },
+      "2": {
+        "vote": 0.55,
+        "pass": 0.66,
+        "distinct_answers": 1.436
+      },
+      "3": {
+        "vote": 0.57,
+        "pass": 0.704,
+        "distinct_answers": 1.872
+      },
+      "4": {
+        "vote": 0.588,
+        "pass": 0.738,
+        "distinct_answers": 2.16
+      },
+      "per_path_acc": [
+        0.55,
+        0.564,
+        0.47,
+        0.552
+      ]
+    },
+    "rft_majority_m4": {
+      "1": {
+        "vote": 0.524,
+        "pass": 0.524,
+        "distinct_answers": 1.0
+      },
+      "2": {
+        "vote": 0.524,
+        "pass": 0.67,
+        "distinct_answers": 1.528
+      },
+      "3": {
+        "vote": 0.596,
+        "pass": 0.728,
+        "distinct_answers": 1.938
+      },
+      "4": {
+        "vote": 0.628,
+        "pass": 0.776,
+        "distinct_answers": 2.294
+      },
+      "per_path_acc": [
+        0.524,
+        0.548,
+        0.542,
+        0.57
+      ]
+    },
+    "sft": {
+      "1": {
+        "vote": 0.504,
+        "pass": 0.504,
+        "distinct_answers": 1.0
+      },
+      "2": {
+        "vote": 0.506,
+        "pass": 0.628,
+        "distinct_answers": 1.596
+      },
+      "3": {
+        "vote": 0.58,
+        "pass": 0.714,
+        "distinct_answers": 2.052
+      },
+      "4": {
+        "vote": 0.616,
+        "pass": 0.75,
+        "distinct_answers": 2.474
+      },
+      "per_path_acc": [
+        0.504,
+        0.486,
+        0.554,
+        0.52
+      ]
+    },
+    "instruct": {
+      "1": {
+        "vote": 0.662,
+        "pass": 0.662,
+        "distinct_answers": 1.0
+      },
+      "2": {
+        "vote": 0.662,
+        "pass": 0.782,
+        "distinct_answers": 1.374
+      },
+      "3": {
+        "vote": 0.714,
+        "pass": 0.82,
+        "distinct_answers": 1.616
+      },
+      "4": {
+        "vote": 0.744,
+        "pass": 0.848,
+        "distinct_answers": 1.84
+      },
+      "per_path_acc": [
+        0.662,
+        0.686,
+        0.696,
+        0.686
+      ]
+    }
+  },
+  "mcnemar_vs_ssft_majority": {
+    "ssft_majority_T0.7": {
+      "b_wins": 39,
+      "a_wins": 56,
+      "p": 0.1002
+    },
+    "rft_majority_m4": {
+      "b_wins": 45,
+      "a_wins": 42,
+      "p": 0.8304
+    },
+    "sft": {
+      "b_wins": 54,
+      "a_wins": 57,
+      "p": 0.8496
+    },
+    "instruct": {
+      "b_wins": 89,
+      "a_wins": 28,
+      "p": 0.0
+    }
+  }
+}
