@@ -225,6 +225,45 @@ RFT on the same traces (60.2 vs 58.2), not yet significance-tested. The paper's 
 diversify better than temperature) does not reproduce at this scale. In this pipeline RFT also did not improve over
 SFT greedy, unlike the earlier HF-decoder run (59.8 → 63.4), so the two setups are not directly comparable.
 
+### Overnight results, 2026-11-23 (main machine)
+
+P-values are paired McNemar tests, uncorrected. The GSM8K test set has been used by many configurations, so treat them as
+exploratory. Compare numbers only within a block: decoders, precision and batch sizes differ between blocks.
+
+**Contrastive weights from 1B SFT** (`scripts/queue_contrast.sh`; fp32, full test). theta = SFT + RFT + lambda (correct − wrong):
+LoRAs trained separately on SFT's own correct and wrong solutions (2,452 each, matched per question). One seed.
+
+| Model | Full test | vs RFT |
+|---|---|---|
+| SFT | 58.2% | p = 0.005 |
+| RFT (7,412 correct solutions) | 61.4% | – |
+| RFT + random halves of the same solutions, lambda 0.25 (control) | 61.2% | p = 0.82 |
+| correct − wrong only, lambda 2 | 62.4% | p = 0.46 |
+| **RFT + (correct − wrong), lambda 1** | **64.1%** | **p = 0.013** (vs control p = 0.007) |
+| Instruct (RL) | 68.1% | p < 0.0001 |
+
+Caveats: lambda 1 is the edge of the grid; held-out separates it only weakly from RFT (78.8 vs 77.0, p = 0.32); the control was
+tested at its own best lambda (matched lambda 1 on held-out only: 72.8); prior-work search not done (task arithmetic
+2212.04089, ExPO 2404.16792 and cDPO 2411.19943 are the closest known).
+
+**RFT on 1B SFT, full test** (`scripts/queue_sft_rft_fulltest.sh`): SFT 59.4; gold 62.9 (p = 0.002); label-free 62.0 (p = 0.028);
+Instruct 67.6. Supersedes the test500 reading that label-free RFT gives no gain on SFT.
+
+**Base + CoT, ReasonMaxxer variants, full test** (prompt-only 38.1, RFT on 686 problems 43.7): tamed entropy gate (beta_neg 0.3, lr 5e-5)
+44.4; same with 200 problems 40.5 (149-step cap: saw about 1,200 of 3,200 rollouts); RFT on the same 50 problems 42.1; tamed soft fork weights 42.2; original entropy gate 41.5; tau 1.4 nats
+40.0; soft fork weights 38.4 / 38.7; hard fork gate 36.0 (checkpoint not verifiable, rerun needed); entropy gate positive-only 35.9
+(only its step-50 evaluation is valid). Fork-branch RFT 41.5, with samples 42.7.
+
+**Seeds + 2x2** (`scripts/queue_seeds_2x2.sh`; Base, 3 LoRA-init seeds, fp32, fresh1000 / SVAMP): prompt-only 44.2 / 42.3; RFT-50
+46.4 / 52.9; tamed 52.7 / 51.2 (under re-check: level with RFT-50 on held-out); EAPO rule 48.2 / 52.3; symmetric 49.2 / 52.4;
+uniform positives with low / high negatives 48.6 / 52.0 and 49.1 / 51.3. An offline adaptation of EAPO (2609.33781), not a replication.
+
+**Extrapolation past Instruct** (alpha 1.5, i.e. 0.5 in ExPO's convention): full test 69.9 vs 67.6; on the 819 questions outside test500
+70.7 vs 67.2 (p = 0.008); on test500 68.6 vs 68.2.
+
+**Analysis caveat**: a small top-2 margin makes an argmax flip easier almost by definition, so "the margin gate predicts RL's changes
+better than entropy" (`results/gate_vs_rl`) is partly circular. bf16 merges also round by about as much as the LoRA change.
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10
