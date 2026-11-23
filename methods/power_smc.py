@@ -19,7 +19,7 @@ from collections import Counter
 import numpy as np
 import torch
 
-from methods.common import make_path, prefix_slug, stop_hit
+from methods.common import encode, make_path, prefix_slug, stop_hit
 
 
 def tag(args):
@@ -40,7 +40,7 @@ def run(model, tok, texts, answers, task, args, ends):
     for b in range(0, len(texts), args.batch_problems):
         batch = [t + args.prefix for t in texts[b:b + args.batch_problems]]
         P = len(batch)
-        enc = tok(batch, return_tensors="pt", padding=True).to("cuda")
+        enc = encode(tok, batch, args.fmt)
         rows = torch.arange(P, device="cuda").repeat_interleave(N)  # row r belongs to problem r // N
         att = enc.attention_mask[rows]
         cur, curpos, past = enc.input_ids[rows], (att.cumsum(-1) - 1).clamp_min(0), None
@@ -75,7 +75,7 @@ def run(model, tok, texts, answers, task, args, ends):
                     done[r] = True
                     continue
                 gens[r].append(y[r])
-                if stop_hit(tok, gens[r]) or len(gens[r]) >= args.max_new_tokens:
+                if stop_hit(tok, gens[r], args.fmt) or len(gens[r]) >= args.max_new_tokens:
                     done[r] = True
             if done.all():
                 break
@@ -106,7 +106,7 @@ def run(model, tok, texts, answers, task, args, ends):
             curpos = curpos[:, -1:] + 1
         for p in range(P):
             sl = range(p * N, (p + 1) * N)
-            paths = [make_path(tok, gens[r], task, answers[b + p], args.max_new_tokens, prefix=args.prefix.lstrip())
+            paths = [make_path(tok, gens[r], task, answers[b + p], args.max_new_tokens, prefix=args.prefix.lstrip(), fmt=args.fmt)
                      for r in sl]
             lw = np.array([logW[r] for r in sl])
             w = np.exp(lw - lw.max())

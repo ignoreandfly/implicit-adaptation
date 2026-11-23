@@ -48,10 +48,10 @@ def run(model, tok, texts, answers, task, args, ends):
                 nxt = s.argmax(-1)
                 return torch.cat([nxt, nxt])
 
-            gen = manual_decode(model, tok, batch + batch, args.max_new_tokens, step, ends)
+            gen = manual_decode(model, tok, batch + batch, args.max_new_tokens, step, ends, fmt=args.fmt)
             for i in range(B):
                 res.append({"paths": [make_path(tok, gen[i], task, answers[b + i], args.max_new_tokens,
-                                                prefix=args.prefix.lstrip())], "chosen": 0})
+                                                prefix=args.prefix.lstrip(), fmt=args.fmt)], "chosen": 0})
             print(f"{b + B}/{len(texts)}", flush=True)
     finally:
         for h in handles:

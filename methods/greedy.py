@@ -19,10 +19,11 @@ def run(model, tok, texts, answers, task, args, ends):
     for b in range(0, len(texts), args.batch_problems * 8):
         batch = texts[b:b + args.batch_problems * 8]
         gen = manual_decode(model, tok, batch, args.max_new_tokens,
-                            lambda lg, hs, g: apply_repetition_penalty(lg, g, args.rep_penalty).argmax(-1), ends)
+                            lambda lg, hs, g: apply_repetition_penalty(lg, g, args.rep_penalty).argmax(-1), ends,
+                            fmt=args.fmt)
         for i, ids in enumerate(gen):
             res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens,
-                                            prefix=args.prefix.lstrip())], "chosen": 0})
+                                            prefix=args.prefix.lstrip(), fmt=args.fmt)], "chosen": 0})
         print(f"{b + len(batch)}/{len(texts)}", flush=True)
     return res
 

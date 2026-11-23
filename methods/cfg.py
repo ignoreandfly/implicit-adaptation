@@ -10,6 +10,7 @@ Greedy decoding on p_hat. Both streams run in one batch (rows 0..B-1 cond, B..2B
 
 import torch
 
+from common import prompts
 from methods.common import make_path, manual_decode, prefix_slug, single_path_summary
 
 
@@ -23,7 +24,12 @@ def run(model, tok, texts, answers, task, args, ends):
     bs = args.batch_problems * 4
     for b in range(0, len(texts), bs):
         cond = [t + args.prefix for t in texts[b:b + bs]]
-        unc = [t[t.rfind("Answer:"):] + args.prefix for t in texts[b:b + bs]]
+        if args.fmt == "chat":  # chat: same template and instruction, question removed
+            u = tok.apply_chat_template([{"role": "user", "content": prompts.CHAT_INSTRUCTION}], tokenize=False,
+                                        add_generation_prompt=True)
+            unc = [u + args.prefix for _ in texts[b:b + bs]]
+        else:
+            unc = [t[t.rfind("Answer:"):] + args.prefix for t in texts[b:b + bs]]
         B = len(cond)
 
         def step(logits, hs, gen):
@@ -32,10 +38,10 @@ def run(model, tok, texts, answers, task, args, ends):
             nxt = s.argmax(-1)
             return torch.cat([nxt, nxt])
 
-        gen = manual_decode(model, tok, cond + unc, args.max_new_tokens, step, ends)
+        gen = manual_decode(model, tok, cond + unc, args.max_new_tokens, step, ends, fmt=args.fmt)
         for i in range(B):
             res.append({"paths": [make_path(tok, gen[i], task, answers[b + i], args.max_new_tokens,
-                                            prefix=args.prefix.lstrip())], "chosen": 0})
+                                            prefix=args.prefix.lstrip(), fmt=args.fmt)], "chosen": 0})
         print(f"{b + B}/{len(texts)}", flush=True)
     return res
 

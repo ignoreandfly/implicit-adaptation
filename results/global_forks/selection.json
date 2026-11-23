@@ -1,0 +1,56 @@
+{
+  "cv": {
+    "plain x6": 0.8093333333333333,
+    "best single x6 (gold)": 0.8132000000000001,
+    "best single x6 (free)": 0.8132000000000001,
+    "top-6 singles (gold)": 0.8057344444444444,
+    "set (gold)": 0.8056400000000001,
+    "set (free)": 0.8048022222222222,
+    "random 6": 0.7729244444444443
+  },
+  "set_gold": [
+    10,
+    8,
+    12,
+    0,
+    7,
+    6
+  ],
+  "set_free": [
+    10,
+    0,
+    8,
+    3,
+    6,
+    17
+  ],
+  "best_gold": 10,
+  "best_free": 10,
+  "pool": [
+    "",
+    "First, calculate",
+    "First, let's",
+    "To find",
+    "First, determine",
+    "Let's denote",
+    "First, we",
+    "To calculate",
+    "Let's break",
+    "Step 1:",
+    "Let's start",
+    "Since",
+    "The",
+    "Let x be",
+    "Let's define the variables and write an equation.",
+    "Let's work backwards from what is asked.",
+    "Here is what we know:",
+    "The question asks for",
+    "Let's solve this step by step, checking each calculation.",
+    "We can write this as a short Python program:\n```python\n",
+    "Let's make a table of the quantities:",
+    "Let's track the units in each step.",
+    "First, estimate the answer.",
+    "Let's write one equation per sentence of the problem.",
+    "Breaking the problem into smaller questions:"
+  ]
+}

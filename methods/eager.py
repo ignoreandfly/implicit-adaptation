@@ -15,7 +15,7 @@ from collections import Counter
 
 import torch
 
-from methods.common import make_path, prefix_slug, stop_hit
+from methods.common import encode, make_path, prefix_slug, stop_hit
 
 
 def tag(args):
@@ -37,7 +37,7 @@ def run(model, tok, texts, answers, task, args, ends):
     for b in range(0, len(texts), args.batch_problems):
         batch = [t + args.prefix for t in texts[b:b + args.batch_problems]]
         P = len(batch)
-        enc = tok(batch, return_tensors="pt", padding=True).to("cuda")
+        enc = encode(tok, batch, args.fmt)
         att = enc.attention_mask
         cur, curpos, past = enc.input_ids, (att.cumsum(-1) - 1).clamp_min(0), None
         owner, gens = list(range(P)), [[] for _ in range(P)]
@@ -64,7 +64,7 @@ def run(model, tok, texts, answers, task, args, ends):
                     g = gens[r] + [t]
                     if t in ends:
                         finished[p].append(gens[r])
-                    elif stop_hit(tok, g) or len(g) >= args.max_new_tokens:
+                    elif stop_hit(tok, g, args.fmt) or len(g) >= args.max_new_tokens:
                         finished[p].append(g)
                     else:
                         parents.append(r); toks.append(t); new_owner.append(p); new_gens.append(g)
@@ -79,7 +79,7 @@ def run(model, tok, texts, answers, task, args, ends):
         for r, p in enumerate(owner):  # anything still active at the step limit
             finished[p].append(gens[r])
         for p in range(P):
-            paths = [make_path(tok, g, task, answers[b + p], args.max_new_tokens, prefix=args.prefix.lstrip())
+            paths = [make_path(tok, g, task, answers[b + p], args.max_new_tokens, prefix=args.prefix.lstrip(), fmt=args.fmt)
                      for g in finished[p]]
             votes = Counter(x["score"]["lenient_answer"] for x in paths if x["score"]["lenient_answer"] is not None)
             top_ans = votes.most_common(1)[0][0] if votes else None

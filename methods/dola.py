@@ -48,9 +48,9 @@ def run(model, tok, texts, answers, task, args, ends):
     bs = args.batch_problems * 4
     for b in range(0, len(texts), bs):
         batch = texts[b:b + bs]
-        gen = manual_decode(model, tok, batch, args.max_new_tokens, step, ends, need_hidden=True)
+        gen = manual_decode(model, tok, batch, args.max_new_tokens, step, ends, need_hidden=True, fmt=args.fmt)
         for i, ids in enumerate(gen):
-            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens)], "chosen": 0})
+            res.append({"paths": [make_path(tok, ids, task, answers[b + i], args.max_new_tokens, fmt=args.fmt)], "chosen": 0})
         print(f"{b + len(batch)}/{len(texts)}", flush=True)
     from collections import Counter
     print("premature layer usage:", Counter(picked).most_common(), flush=True)

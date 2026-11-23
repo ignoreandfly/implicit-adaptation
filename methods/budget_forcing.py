@@ -27,10 +27,10 @@ def run(model, tok, texts, answers, task, args, ends):
         used = [0] * len(batch)
         for r in range(args.rounds + 1):
             gen = manual_decode(model, tok, [t + c for t, c in zip(batch, cont)],
-                                args.max_new_tokens, lambda lg, hs, g: lg.argmax(-1), ends)
+                                args.max_new_tokens, lambda lg, hs, g: lg.argmax(-1), ends, fmt=args.fmt)
             for i, ids in enumerate(gen):
-                piece = prompts.truncate(tok.decode(ids, skip_special_tokens=True), "plain")
-                cont[i] = (cont[i] + " " + piece).strip() if cont[i] else piece
+                piece = prompts.truncate(tok.decode(ids, skip_special_tokens=True), args.fmt)
+                cont[i] = ((cont[i] + " " + piece).strip() if args.fmt == "plain" else cont[i] + piece) if cont[i] else piece
                 used[i] += len(ids)
                 if r < args.rounds:
                     cont[i] = cont[i] + wait
@@ -46,7 +46,7 @@ def run(model, tok, texts, answers, task, args, ends):
 
         for i, c in enumerate(cont):
             p = make_path(tok, [], task, answers[b + i], args.max_new_tokens, prefix=(args.prefix.strip() + " " + c).strip(),
-                          score_text=last_segment, extra={"total_gen_tokens": used[i]})
+                          score_text=last_segment, extra={"total_gen_tokens": used[i]}, fmt=args.fmt)
             p["gen_tokens"] = used[i]
             res.append({"paths": [p], "chosen": 0})
         print(f"{b + len(batch)}/{len(texts)}", flush=True)

@@ -48,10 +48,11 @@ DC_SIGNALS = ["dc_lowest", "dc_bottom10", "dc_tail"]
 DC_WINDOW = 32
 
 
-def path_signals(model, tok, prompt, out, answer_norm, normalize, g=0.5, rho=0.85):
+def path_signals(model, tok, prompt, out, answer_norm, normalize, g=0.5, rho=0.85, fmt="plain"):
     L = model.config.num_hidden_layers
-    p_ids = tok(prompt).input_ids
-    o_ids = tok(" " + out, add_special_tokens=False).input_ids[:512]
+    # chat templates carry their own special tokens; plain outputs follow "Answer:" after a space
+    p_ids = tok(prompt, add_special_tokens=(fmt == "plain")).input_ids
+    o_ids = tok((" " + out) if fmt == "plain" else out, add_special_tokens=False).input_ids[:512]
     T = len(o_ids)
     if T == 0:
         return {**{s: -1e9 for s in SIGNALS}, "_emb_last": None, "_emb_mean": None}
@@ -194,7 +195,7 @@ def main():
         prompt = prompts.build_prompt(fmt, r["question"], ex, tok)
         for x in r["paths"]:
             sig = path_signals(model, tok, prompt, x["output"], x["score"]["lenient_answer"],
-                               task.normalize_number)
+                               task.normalize_number, fmt=fmt)
             x["_emb_last"], x["_emb_mean"] = sig.pop("_emb_last"), sig.pop("_emb_mean")
             x["signals"] = sig
         if (i + 1) % 25 == 0:

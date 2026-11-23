@@ -19,6 +19,7 @@ import torch
 from transformers import LogitsProcessor, LogitsProcessorList
 
 from common import prompts
+from methods.common import encode, gen_stop_strings
 
 _NUM_RE = re.compile(r"-?\$?\d[\d,]*(?:\.\d+)?")
 
@@ -57,8 +58,10 @@ def _answer_confidence(tok, ids, margins, text_full, cut, answer, normalize):
     return float(sum(vals) / len(vals)) if vals else 0.0
 
 
-def _cut_index(text):
+def _cut_index(text, fmt="plain"):
     cut = len(text)
+    if fmt != "plain":
+        return cut
     for s in prompts.STOP_STRINGS:
         i = text.find(s)
         if i != -1:
@@ -71,7 +74,7 @@ def run(model, tok, texts, answers, task, args, ends):
     results = []
     for b in range(0, len(texts), args.batch_problems):
         batch = texts[b:b + args.batch_problems]
-        enc = tok(batch, return_tensors="pt", padding=True, add_special_tokens=True).to("cuda")
+        enc = encode(tok, batch, args.fmt)
         with torch.no_grad():
             first = model(**enc).logits[:, -1].float().topk(k, dim=-1).indices  # (B, k)
         B = len(batch)
@@ -84,7 +87,7 @@ def run(model, tok, texts, answers, task, args, ends):
             gen = model.generate(input_ids=ids, attention_mask=att, max_new_tokens=args.max_new_tokens,
                                  do_sample=False, pad_token_id=tok.pad_token_id,
                                  logits_processor=LogitsProcessorList([rec]),
-                                 stop_strings=prompts.STOP_STRINGS, tokenizer=tok)
+                                 stop_strings=gen_stop_strings(args.fmt), tokenizer=tok)
         new = gen[:, ids.shape[1]:].tolist()
         margins = torch.stack(rec.steps, 1).tolist() if rec.steps else [[] for _ in new]
         for p in range(B):
@@ -94,9 +97,9 @@ def run(model, tok, texts, answers, task, args, ends):
                 n = next((t for t, x in enumerate(new[r]) if x in ends), len(new[r]))
                 path_ids = [first[p, j].item()] + new[r][:n]
                 full = tok.decode(path_ids, skip_special_tokens=True)
-                out = prompts.truncate(full, "plain")
+                out = prompts.truncate(full, args.fmt)
                 score = task.verify(out, answers[b + p])
-                conf = _answer_confidence(tok, path_ids, margins[r][:n], full, _cut_index(full),
+                conf = _answer_confidence(tok, path_ids, margins[r][:n], full, _cut_index(full, args.fmt),
                                           score["lenient_answer"], task.normalize_number)
                 paths.append({"output": out, "first_token": tok.decode(path_ids[:1]), "delta": conf,
                               "gen_tokens": n + 1, "truncated": n >= args.max_new_tokens, "score": score})

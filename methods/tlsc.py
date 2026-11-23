@@ -18,7 +18,7 @@ import math
 import torch
 
 from common import prompts
-from methods.common import make_path, prefix_slug
+from methods.common import encode, make_path, prefix_slug
 
 THOUGHT_STOPS = [".", "\n"]
 
@@ -41,7 +41,7 @@ def run(model, tok, texts, answers, task, args, ends):
                 break
             k = K if step < args.tlsc_steps else 1
             budget = max(1, min(300, args.max_new_tokens - min(used[i] for i in act)))
-            enc = tok([base[i] + text[i] for i in act], return_tensors="pt", padding=True).to("cuda")
+            enc = encode(tok, [base[i] + text[i] for i in act], args.fmt)
             with torch.no_grad():
                 out = model.generate(**enc, max_new_tokens=budget, do_sample=k > 1,
                                      temperature=args.temperature if k > 1 else None, top_k=0 if k > 1 else None,
@@ -66,10 +66,10 @@ def run(model, tok, texts, answers, task, args, ends):
                 text[i] += piece
                 used[i] += len(best_ids)
                 if (best_end or not best_ids or used[i] >= args.max_new_tokens
-                        or any(s in text[i] for s in prompts.STOP_STRINGS)):
+                        or (args.fmt == "plain" and any(s in text[i] for s in prompts.STOP_STRINGS))):
                     done[i] = True
         for i in range(B):
-            p = make_path(tok, [], task, answers[b + i], args.max_new_tokens, prefix=args.prefix.lstrip() + text[i])
+            p = make_path(tok, [], task, answers[b + i], args.max_new_tokens, prefix=args.prefix.lstrip() + text[i], fmt=args.fmt)
             p["gen_tokens"], p["truncated"] = used[i], used[i] >= args.max_new_tokens
             res.append({"paths": [p], "chosen": 0, "generated_tokens": spent[i]})
         print(f"{b + B}/{len(texts)}", flush=True)

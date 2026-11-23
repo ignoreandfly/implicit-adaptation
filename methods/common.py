@@ -17,8 +17,19 @@ def make_path(tok, gen_ids, task, answer, max_new_tokens, prefix="", extra=None,
             "score": score, **(extra or {})}
 
 
-def stop_hit(tok, ids):
-    return any(s in tok.decode(ids[-12:], skip_special_tokens=True) for s in prompts.STOP_STRINGS)
+def stop_hit(tok, ids, fmt="plain"):
+    """Plain-format stop strings; chat models stop at EOS only."""
+    return fmt == "plain" and any(s in tok.decode(ids[-12:], skip_special_tokens=True) for s in prompts.STOP_STRINGS)
+
+
+def encode(tok, texts, fmt="plain"):
+    """Batch-encode prompts: chat templates already contain their special tokens, so only plain prompts get a BOS."""
+    return tok(texts, return_tensors="pt", padding=True, add_special_tokens=(fmt == "plain")).to("cuda")
+
+
+def gen_stop_strings(fmt="plain"):
+    """stop_strings for model.generate: blank line etc. for plain prompts, none (EOS only) for chat."""
+    return prompts.STOP_STRINGS if fmt == "plain" else None
 
 
 def manual_decode(model, tok, texts, max_new_tokens, next_token_fn, ends, need_hidden=False, fmt="plain"):

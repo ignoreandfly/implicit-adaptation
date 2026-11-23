@@ -11,7 +11,7 @@ import torch
 from transformers import LogitsProcessor, LogitsProcessorList
 
 from common import prompts
-from methods.common import prefix_slug, make_path
+from methods.common import encode, gen_stop_strings, prefix_slug, make_path
 
 
 class ForkTemperature(LogitsProcessor):
@@ -44,20 +44,20 @@ def run(model, tok, texts, answers, task, args, ends):
     res = []
     for b in range(0, len(texts), args.batch_problems):
         batch = texts[b:b + args.batch_problems]
-        enc = tok(batch, return_tensors="pt", padding=True).to("cuda")
+        enc = encode(tok, batch, args.fmt)
         with torch.no_grad():
             gen = model.generate(**enc, do_sample=True, max_new_tokens=args.max_new_tokens,
                                  temperature=1.0 if proc else args.temperature, top_k=0, top_p=1.0,
                                  num_return_sequences=args.n, pad_token_id=tok.pad_token_id,
                                  logits_processor=LogitsProcessorList([proc]) if proc else None,
-                                 stop_strings=prompts.STOP_STRINGS, tokenizer=tok)
+                                 stop_strings=gen_stop_strings(args.fmt), tokenizer=tok)
         new = gen[:, enc.input_ids.shape[1]:].tolist()
         for p in range(len(batch)):
             paths = []
             for j in range(args.n):
                 ids = new[p * args.n + j]
                 n = next((t for t, x in enumerate(ids) if x in ends), len(ids))
-                paths.append(make_path(tok, ids[:n], task, answers[b + p], args.max_new_tokens, prefix=args.prefix.lstrip()))
+                paths.append(make_path(tok, ids[:n], task, answers[b + p], args.max_new_tokens, prefix=args.prefix.lstrip(), fmt=args.fmt))
             votes = Counter(x["score"]["lenient_answer"] for x in paths if x["score"]["lenient_answer"] is not None)
             top = votes.most_common(1)[0][0] if votes else None
             chosen = next((j for j, x in enumerate(paths) if x["score"]["lenient_answer"] == top), 0)
