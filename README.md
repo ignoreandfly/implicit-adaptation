@@ -190,6 +190,80 @@ Gold vs shuffled on test500: +4.8, McNemar p = 0.037. A consistent but small gai
 reach significance against the untrained baseline; the label-free version gives nothing on Base (majority labels were
 correct on only 46% of training questions). **The RFT baseline beats the fork-contrastive LoRA by 5.4 points on test500 (same 1,000 questions, same LoRA settings): the fork-local training is not what helps; whole correct self-generated solutions are a much stronger signal.** Label-free (majority) RFT also helps significantly (+4.4), recovering ~70% of what 10-sample self-consistency gives on this setup (43.2%) at 1x inference cost — even though the base model's majority answer was right on only 46% of the training questions.
 
+### Self-SSFT: global forking tokens trained on the model's own traces (1B SFT, test500)
+
+SSFT (Jia et al., ICLR 2026, [arXiv 2510.05132](https://arxiv.org/abs/2510.05132)) adds tokens `<think1..N>` and
+trains them by **set matching**: each question's distinct traces are matched one-to-one to the tags by minimum loss,
+and each tag is trained only on its matched trace, so that each tag starts a different reasoning mode. The paper
+used 32B models and teacher traces. We test it at 1B with the model's **own** RFT traces (`train/ssft_lora.py`,
+`scripts/gcp_ssft.sh`): 8 SFT samples (T 0.7) on 1,500 training questions, up to 4 most-distinct correct
+(or majority-agreeing) traces per question, N = 4 tags, LoRA r32 + tag embeddings, 2 epochs. Controls on the same
+traces: no tags (= RFT, `rft_*_m4`), random tag assignment (`ssft_gold_random`), and standard RFT on all correct
+samples. One vLLM pipeline for all models; equal compute for voting = 4 paths (one greedy path per tag vs 4 samples
+at T 0.7); `analysis/ssft_cons.py`.
+
+| Model | Pass@1 (greedy; tagged models: `<think1>`) | Vote@4 | Pass@4 | Distinct answers / 4 |
+|---|---|---|---|---|
+| SFT | 58.8 | 61.6 | 75.0 | 2.47 |
+| RFT, same capped traces (gold) | 58.2 | 61.8 | 76.4 | 2.30 |
+| RFT, all correct samples (gold) | 57.2 | 64.0 | 75.0 | 2.23 |
+| **Self-SSFT (gold)** | **60.2** | 63.2 | 76.8 | 1.89 |
+| Self-SSFT, random tag assignment | 58.0 | 58.8 | 65.2 | 1.29 |
+| Self-SSFT (majority, label-free) | 59.4 | 62.2 | 75.0 | 1.89 |
+| RFT, same capped traces (majority) | 55.6 | 62.8 | 77.6 | 2.29 |
+| Instruct (RL) | 66.6 | 74.4 | 84.8 | 1.84 |
+
+McNemar on Vote@4: Self-SSFT vs RFT (same traces) p = 0.53, vs RFT (all) p = 0.76, **vs random tags p = 0.012**;
+label-free Self-SSFT vs label-free RFT p = 0.83. Training: tag usage stayed balanced (~145 traces per tag per
+logging window), and 52–59% of questions kept the same tag assignment across epochs.
+
+**Takeaways.** (1) The matching is what makes the tags differ: random assignment leaves the four tags nearly
+identical (1.29 distinct answers) and votes significantly worse. (2) No mode collapse. (3) But at 1B on GSM8K the
+tags do **not** beat temperature sampling: one greedy path per tag is slightly more accurate per path but less
+diverse (1.89 vs 2.30 distinct answers), so Vote@4 is the same as RFT's maj@4. (4) `<think1>` alone is +2.0 over
+RFT on the same traces (60.2 vs 58.2), not yet significance-tested. The paper's central claim (learned global forks
+diversify better than temperature) does not reproduce at this scale. In this pipeline RFT also did not improve over
+SFT greedy, unlike the earlier HF-decoder run (59.8 → 63.4), so the two setups are not directly comparable.
+
+### Overnight results, 2026-11-23 (main machine)
+
+P-values are paired McNemar tests, uncorrected. The GSM8K test set has been used by many configurations, so treat them as
+exploratory. Compare numbers only within a block: decoders, precision and batch sizes differ between blocks.
+
+**Contrastive weights from 1B SFT** (`scripts/queue_contrast.sh`; fp32, full test). theta = SFT + RFT + lambda (correct − wrong):
+LoRAs trained separately on SFT's own correct and wrong solutions (2,452 each, matched per question). One seed.
+
+| Model | Full test | vs RFT |
+|---|---|---|
+| SFT | 58.2% | p = 0.005 |
+| RFT (7,412 correct solutions) | 61.4% | – |
+| RFT + random halves of the same solutions, lambda 0.25 (control) | 61.2% | p = 0.82 |
+| correct − wrong only, lambda 2 | 62.4% | p = 0.46 |
+| **RFT + (correct − wrong), lambda 1** | **64.1%** | **p = 0.013** (vs control p = 0.007) |
+| Instruct (RL) | 68.1% | p < 0.0001 |
+
+Caveats: lambda 1 is the edge of the grid; held-out separates it only weakly from RFT (78.8 vs 77.0, p = 0.32); the control was
+tested at its own best lambda (matched lambda 1 on held-out only: 72.8); prior-work search not done (task arithmetic
+2212.04089, ExPO 2404.16792 and cDPO 2411.19943 are the closest known).
+
+**RFT on 1B SFT, full test** (`scripts/queue_sft_rft_fulltest.sh`): SFT 59.4; gold 62.9 (p = 0.002); label-free 62.0 (p = 0.028);
+Instruct 67.6. Supersedes the test500 reading that label-free RFT gives no gain on SFT.
+
+**Base + CoT, ReasonMaxxer variants, full test** (prompt-only 38.1, RFT on 686 problems 43.7): tamed entropy gate (beta_neg 0.3, lr 5e-5)
+44.4; same with 200 problems 40.5 (149-step cap: saw about 1,200 of 3,200 rollouts); RFT on the same 50 problems 42.1; tamed soft fork weights 42.2; original entropy gate 41.5; tau 1.4 nats
+40.0; soft fork weights 38.4 / 38.7; hard fork gate 36.0 (checkpoint not verifiable, rerun needed); entropy gate positive-only 35.9
+(only its step-50 evaluation is valid). Fork-branch RFT 41.5, with samples 42.7.
+
+**Seeds + 2x2** (`scripts/queue_seeds_2x2.sh`; Base, 3 LoRA-init seeds, fp32, fresh1000 / SVAMP): prompt-only 44.2 / 42.3; RFT-50
+46.4 / 52.9; tamed 52.7 / 51.2 (seed-0 scores reproduce exactly from the saved adapters; but RFT-50 is level or ahead on heldout500, 50.2 vs 48.6, and on SVAMP, and the sets disagree for reasons we have not found); EAPO rule 48.2 / 52.3; symmetric 49.2 / 52.4;
+uniform positives with low / high negatives 48.6 / 52.0 and 49.1 / 51.3. An offline adaptation of EAPO (2609.33781), not a replication.
+
+**Extrapolation past Instruct** (alpha 1.5, i.e. 0.5 in ExPO's convention): full test 69.9 vs 67.6; on the 819 questions outside test500
+70.7 vs 67.2 (p = 0.008); on test500 68.6 vs 68.2.
+
+**Analysis caveat**: a small top-2 margin makes an argmax flip easier almost by definition, so "the margin gate predicts RL's changes
+better than entropy" (`results/gate_vs_rl`) is partly circular. bf16 merges also round by about as much as the LoRA change.
+
 ### Is the ability already in the base model? (reasoning analogue of Hewitt et al. Table 2)
 
 `analysis/ranking_test.py --natural`: on the 138 dev problems where the base model's own 10

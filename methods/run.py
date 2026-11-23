@@ -10,6 +10,7 @@ method's chosen output) plus method-specific fields from <method>.summarize().
 import argparse
 import importlib
 import json
+import os
 import random
 import time
 from pathlib import Path
@@ -117,7 +118,8 @@ def main():
         tok.pad_token = tok.eos_token
     texts = [prompts.build_prompt(fmt, r["question"], exemplars, tok) for r in rows]
     answers = [r["answer"] for r in rows]
-    model = AutoModelForCausalLM.from_pretrained(hf_id, torch_dtype=torch.bfloat16).cuda().eval()
+    model = AutoModelForCausalLM.from_pretrained(hf_id, 
+                                                 torch_dtype=getattr(torch, os.environ.get("IA_DTYPE", "bfloat16"))).cuda().eval()
 
     method = importlib.import_module(f"methods.{args.method}")
     t0 = time.time()

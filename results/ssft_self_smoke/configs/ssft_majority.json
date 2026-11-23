@@ -1,0 +1,30 @@
+{
+  "args": {
+    "gens": "results/ssft_self_smoke/sft_train40_n8",
+    "split": "train",
+    "model": "olmo2-1b-sft",
+    "label": "majority",
+    "assign": "match",
+    "n_tags": 4,
+    "m": 4,
+    "lr": 0.0001,
+    "emb_lr": 0.001,
+    "tag_noise": 0.1,
+    "epochs": 2,
+    "accum": 8,
+    "rank": 32,
+    "max_len": 640,
+    "seed": 0,
+    "limit": null,
+    "out": "checkpoints/ssft_self_smoke/ssft_majority"
+  },
+  "tags": [
+    "<think1>",
+    "<think2>",
+    "<think3>",
+    "<think4>"
+  ],
+  "questions": 40,
+  "traces": 143,
+  "log": []
+}

@@ -1,0 +1,13 @@
+{
+  "a": "olmo2-1b-dpo",
+  "b": "olmo2-1b-instruct",
+  "split": "test",
+  "results": {
+    "1.5": {
+      "error": "ory, this process has 2.11 GiB memory in use. Of the allocated memory 1.85 GiB is allocated by PyTorch, and 5.82 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+    },
+    "1.0": {
+      "error": "ory, this process has 1.66 GiB memory in use. Of the allocated memory 1.41 GiB is allocated by PyTorch, and 1.88 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)\n"
+    }
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.6_n20",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "format": null,
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "n_problems": 200,
+    "trim": 0.8,
+    "tau": 1.4,
+    "tau_pct": null,
+    "gate": "entropy",
+    "margin_thr": 0.2,
+    "gamma": 2.0,
+    "share": 0.05,
+    "kl": 0.2,
+    "kl_scope": "all",
+    "adv_clip": 2.5,
+    "beta_neg": 0.3,
+    "lr": 5e-05,
+    "epochs": 2,
+    "max_steps": 149,
+    "warmup": 50,
+    "accum": 8,
+    "rank": 32,
+    "shuffle": false,
+    "positive_only": false,
+    "rft_weights": false,
+    "save_every": 25,
+    "max_len": 1024,
+    "limit": null,
+    "seed": 42,
+    "out": "/data/azfarm/siddhant_fork_lora/rmxfair_ent05_tamed_np200"
+  },
+  "stats": {
+    "skipped_uniform": 53,
+    "problems": 200,
+    "rollouts_selected": 4000,
+    "rollouts_after_trim": 3200,
+    "pos_rollouts": 1567
+  },
+  "threshold": 2.3235840797424316,
+  "decision_share": 0.0526797628532222,
+  "steps": 149,
+  "log": [
+    {
+      "step": 10,
+      "epoch": 0,
+      "l_dec": 3.6489553451538086,
+      "l_kl": 0.00033912662183865905,
+      "lr": 1.1000000000000001e-05
+    },
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": 2.9870002269744873,
+      "l_kl": 0.00134427344892174,
+      "lr": 2.1e-05
+    },
+    {
+      "step": 30,
+      "epoch": 0,
+      "l_dec": 1.1170421838760376,
+      "l_kl": 0.043294232338666916,
+      "lr": 3.1e-05
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "l_dec": 1.3371140956878662,
+      "l_kl": 0.06663816422224045,
+      "lr": 4.1e-05
+    },
+    {
+      "step": 50,
+      "epoch": 0,
+      "l_dec": -0.5903884172439575,
+      "l_kl": 0.13886182010173798,
+      "lr": 5e-05
+    },
+    {
+      "step": 60,
+      "epoch": 0,
+      "l_dec": -0.7833955883979797,
+      "l_kl": 0.11380991339683533,
+      "lr": 4.494949494949495e-05
+    },
+    {
+      "step": 70,
+      "epoch": 0,
+      "l_dec": -1.110966682434082,
+      "l_kl": 0.06244879961013794,
+      "lr": 3.98989898989899e-05
+    },
+    {
+      "step": 80,
+      "epoch": 0,
+      "l_dec": -0.3818245530128479,
+      "l_kl": 0.031328022480010986,
+      "lr": 3.484848484848485e-05
+    },
+    {
+      "step": 90,
+      "epoch": 0,
+      "l_dec": 0.9659996628761292,
+      "l_kl": 0.04990888386964798,
+      "lr": 2.9797979797979796e-05
+    },
+    {
+      "step": 100,
+      "epoch": 0,
+      "l_dec": 2.424111843109131,
+      "l_kl": 0.036091387271881104,
+      "lr": 2.474747474747475e-05
+    },
+    {
+      "step": 110,
+      "epoch": 0,
+      "l_dec": 0.5018947124481201,
+      "l_kl": 0.044982802122831345,
+      "lr": 1.9696969696969697e-05
+    },
+    {
+      "step": 120,
+      "epoch": 0,
+      "l_dec": 0.20969432592391968,
+      "l_kl": 0.025054359808564186,
+      "lr": 1.4646464646464647e-05
+    },
+    {
+      "step": 130,
+      "epoch": 0,
+      "l_dec": -0.30080509185791016,
+      "l_kl": 0.04499656334519386,
+      "lr": 9.595959595959595e-06
+    },
+    {
+      "step": 140,
+      "epoch": 0,
+      "l_dec": -0.3396720290184021,
+      "l_kl": 0.11679061502218246,
+      "lr": 4.5454545454545455e-06
+    }
+  ]
+}
