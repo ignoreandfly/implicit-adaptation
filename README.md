@@ -255,7 +255,7 @@ Instruct 67.6. Supersedes the test500 reading that label-free RFT gives no gain 
 (only its step-50 evaluation is valid). Fork-branch RFT 41.5, with samples 42.7.
 
 **Seeds + 2x2** (`scripts/queue_seeds_2x2.sh`; Base, 3 LoRA-init seeds, fp32, fresh1000 / SVAMP): prompt-only 44.2 / 42.3; RFT-50
-46.4 / 52.9; tamed 52.7 / 51.2 (under re-check: level with RFT-50 on held-out); EAPO rule 48.2 / 52.3; symmetric 49.2 / 52.4;
+46.4 / 52.9; tamed 52.7 / 51.2 (seed-0 scores reproduce exactly from the saved adapters; but RFT-50 is level or ahead on heldout500, 50.2 vs 48.6, and on SVAMP, and the sets disagree for reasons we have not found); EAPO rule 48.2 / 52.3; symmetric 49.2 / 52.4;
 uniform positives with low / high negatives 48.6 / 52.0 and 49.1 / 51.3. An offline adaptation of EAPO (2609.33781), not a replication.
 
 **Extrapolation past Instruct** (alpha 1.5, i.e. 0.5 in ExPO's convention): full test 69.9 vs 67.6; on the 819 questions outside test500
