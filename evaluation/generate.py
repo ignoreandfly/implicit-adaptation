@@ -150,6 +150,7 @@ def main():
                     help="vllm only: share of total GPU memory vLLM may use (keep low on shared GPUs)")
     ap.add_argument("--max_model_len", type=int, default=4096, help="vllm only")
     ap.add_argument("--enforce_eager", action="store_true", help="vllm only: skip CUDA graphs")
+    ap.add_argument("--suffix", default="", help="text appended to every prompt, e.g. an SSFT tag '<think1>'")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -170,7 +171,7 @@ def main():
     exemplars = []
     if args.few_shot:
         exemplars = random.Random(args.seed).sample(read_jsonl(f"{data_dir}/train.jsonl"), args.few_shot)
-    texts = [prompts.build_prompt(fmt, r["question"], exemplars, tok) for r in rows]
+    texts = [prompts.build_prompt(fmt, r["question"], exemplars, tok) + args.suffix for r in rows]
     print(f"{hf_id} [{fmt}] via {args.backend}, {len(rows)} problems; prompt 0:\n{texts[0]}", flush=True)
 
     if args.n_samples > 1 and not args.temperature > 0:
@@ -194,7 +195,7 @@ def main():
 
     metrics = aggregate(per_problem)
     metrics.update({"model": args.model, "hf_id": hf_id, "format": fmt, "task": args.task,
-                    "split": args.split, "subset": args.subset, "few_shot": args.few_shot,
+                    "split": args.split, "subset": args.subset, "suffix": args.suffix, "few_shot": args.few_shot,
                     "temperature": args.temperature, "n_samples": args.n_samples,
                     "max_new_tokens": args.max_new_tokens, "seed": args.seed,
                     "dtype": str(dtype).replace("torch.", ""), "limit": args.limit,
