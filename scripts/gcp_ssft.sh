@@ -28,42 +28,44 @@ if has data; then   # 8 SFT samples per training question (T 0.7), same recipe a
   echo "data: $(acc logs/ssft_data.log)"
 fi
 
-train () {  # tag, trainer module, args...
-  local tag=$1 mod=$2; shift 2
-  [ -f $CK/$tag/model.safetensors ] || $HPY -m $mod "$@" --out $CK/$tag > logs/ssft_train_$tag.log 2>&1
-  [ -f $CK/$tag/model.safetensors ] && echo "trained $tag: $(grep -m1 'questions' logs/ssft_train_$tag.log)" \
-    || echo "TRAINING FAILED $tag (logs/ssft_train_$tag.log)"
-}
-if has train; then
-  for lab in gold majority; do
-    train ssft_$lab       train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label $lab --n_tags $NT --m $NT --assign match
-    train rft_${lab}_m4   train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label $lab --n_tags $NT --m $NT --assign none
-  done
-  train ssft_gold_random  train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label gold --n_tags $NT --m $NT --assign random
-  train rft_gold_all      train.rft_lora  --gens $SAMPLES --model olmo2-1b-sft --label gold --lr 1e-4 --epochs 2
-fi
-
 gen () {  # out-tag, model, extra args
   local t=$1 m=$2; shift 2
   [ -f $R/eval/$t/$SPLIT.metrics.json ] || $VPY -m evaluation.generate --backend vllm --model $m --format chat $EVAL \
     --gpu_memory_utilization $MEM "$@" --out $R/eval/$t > logs/ssft_eval_$t.log 2>&1
   echo "eval $t: $(acc logs/ssft_eval_$t.log)"
 }
-if has eval; then
-  # untagged models: greedy (pass@1) + 4 samples at T 0.7 (maj@4 = same compute as one greedy path per tag)
-  for m in olmo2-1b-sft olmo2-1b-instruct $CK/rft_gold_m4 $CK/rft_majority_m4 $CK/rft_gold_all; do
-    t=$(basename $m)
-    gen $t $m
-    gen ${t}_n4 $m --n_samples 4 --temperature 0.7
-  done
-  # tagged models: greedy once per tag, and 1 sample at T 0.7 per tag
-  for t in ssft_gold ssft_majority ssft_gold_random; do
+evals () {  # out-tag, model, tagged(0/1): greedy + T0.7 paths; untagged = greedy + 4 samples (= one path per tag)
+  local t=$1 m=$2
+  if [ "$3" = 1 ]; then
     for i in $(seq 1 $NT); do
-      gen ${t}_t$i $CK/$t --suffix "<think$i>"
-      gen ${t}_t${i}_T0.7 $CK/$t --suffix "<think$i>" --temperature 0.7
+      gen ${t}_t$i $m --suffix "<think$i>"
+      gen ${t}_t${i}_T0.7 $m --suffix "<think$i>" --temperature 0.7
     done
-  done
-fi
+  else
+    gen $t $m; gen ${t}_n4 $m --n_samples 4 --temperature 0.7
+  fi
+}
+done_evals () { [ -f $R/eval/$1$([ "$2" = 1 ] && echo _t${NT}_T0.7 || echo _n4)/$SPLIT.metrics.json ]; }
+# train -> evaluate -> delete the checkpoint (the VM disk holds ~1 model at a time); configs kept in $R/configs
+model () {  # tag, tagged(0/1), trainer module, args...
+  local tag=$1 tg=$2 mod=$3; shift 3
+  done_evals $tag $tg && { echo "done $tag"; return; }
+  if has train && [ ! -f $CK/$tag/model.safetensors ]; then
+    $HPY -m $mod "$@" --out $CK/$tag > logs/ssft_train_$tag.log 2>&1
+  fi
+  [ -f $CK/$tag/model.safetensors ] || { echo "TRAINING FAILED $tag (logs/ssft_train_$tag.log)"; return; }
+  echo "trained $tag: $(grep -m1 'questions\|training solutions' logs/ssft_train_$tag.log)"
+  mkdir -p $R/configs; cp $CK/$tag/*_config.json $R/configs/$tag.json 2>/dev/null
+  has eval && evals $tag $CK/$tag $tg
+  done_evals $tag $tg && [ "${KEEP:-0}" != 1 ] && rm -rf $CK/$tag
+}
+if has eval; then evals olmo2-1b-sft olmo2-1b-sft 0; evals olmo2-1b-instruct olmo2-1b-instruct 0; fi
+for lab in gold majority; do
+  model ssft_$lab     1 train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label $lab --n_tags $NT --m $NT --assign match
+  model rft_${lab}_m4 0 train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label $lab --n_tags $NT --m $NT --assign none
+done
+model ssft_gold_random 1 train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label gold --n_tags $NT --m $NT --assign random
+model rft_gold_all     0 train.rft_lora  --gens $SAMPLES --model olmo2-1b-sft --label gold --lr 1e-4 --epochs 2
 
 if has cons; then
   E=$R/eval
