@@ -1,0 +1,51 @@
+{
+  "a": "olmo2-1b-sft",
+  "b": "olmo2-1b-dpo",
+  "positions": 42977,
+  "changed": 2613,
+  "changed_share": 0.06079996277078437,
+  "auroc": {
+    "entropy": 0.9221872436146794,
+    "neg_margin": 0.9399249313072697
+  },
+  "gates": {
+    "entropy_1pct": {
+      "recall": 0.08304630692690394,
+      "precision": 0.5046511627906977
+    },
+    "margin_1pct": {
+      "recall": 0.09950248756218906,
+      "precision": 0.6046511627906976
+    },
+    "entropy_5pct": {
+      "recall": 0.32567929582854954,
+      "precision": 0.39599813866914846
+    },
+    "margin_5pct": {
+      "recall": 0.39762724837351704,
+      "precision": 0.48348068869241506
+    },
+    "entropy_10pct": {
+      "recall": 0.5545350172215844,
+      "precision": 0.33713355048859933
+    },
+    "margin_10pct": {
+      "recall": 0.6666666666666666,
+      "precision": 0.40530479292694277
+    },
+    "entropy_20pct": {
+      "recall": 0.8855721393034826,
+      "precision": 0.2692262943571844
+    },
+    "margin_20pct": {
+      "recall": 0.9142747799464217,
+      "precision": 0.2779522978475858
+    }
+  },
+  "jaccard_top5pct": 0.2749925838030258,
+  "low_entropy_near_ties": {
+    "share_of_positions": 0.020289922516694977,
+    "share_of_changes": 0.15767317259854574,
+    "changes_with_H_gt_1.4": 0.32721010332950634
+  }
+}

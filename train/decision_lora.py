@@ -113,10 +113,13 @@ def main():
     ap.add_argument("--trim", type=float, default=0.8, help="keep this fraction of the shortest selected rollouts")
     ap.add_argument("--tau", type=float, default=1.4, help="absolute entropy threshold (nats) for decision points")
     ap.add_argument("--tau_pct", type=float, default=None, help="if set, use this percentile of entropies instead")
-    ap.add_argument("--gate", choices=["entropy", "margin", "all"], default="entropy",
+    ap.add_argument("--gate", choices=["entropy", "margin", "all", "weight"], default="entropy",
                     help="decision points by reference entropy > tau (ReasonMaxxer) or by reference top-2 probability "
                          "margin < --margin_thr (our fork criterion)")
     ap.add_argument("--margin_thr", type=float, default=0.2)
+    ap.add_argument("--gamma", type=float, default=2.0,
+                    help="--gate weight: soft fork weighting, per-token advantage A * w_t with w_t = (1 - m_t)^gamma "
+                         "(m_t = reference top-2 probability margin); KL anchor weighted by 1 - w_t")
     ap.add_argument("--share", type=float, default=None,
                     help="instead of an absolute threshold, gate this fraction of response tokens (e.g. 0.05)")
     ap.add_argument("--kl", type=float, default=0.2)
@@ -167,14 +170,17 @@ def main():
         lr = ref_logp(torch.tensor([e["ids"]], device="cuda"))[e["P"] - 1:]
         if args.gate == "all":
             e["S"] = torch.ones(lr.shape[0])
+        elif args.gate == "weight":
+            top = lr.exp().topk(2, -1).values
+            e["S"] = (1 - (top[:, 0] - top[:, 1])).clamp(0, 1).pow(args.gamma).cpu()   # fork weight w_t
         elif args.gate == "entropy":
             e["S"] = (-(lr.exp() * lr).sum(-1)).cpu()
         else:
             top = lr.exp().topk(2, -1).values
             e["S"] = -(top[:, 0] - top[:, 1]).cpu()          # negative top-2 margin
     allS = torch.cat([e["S"] for e in ex]).numpy()
-    if args.gate == "all":
-        tau = 0.0
+    if args.gate in ("all", "weight"):
+        tau = -1.0       # every response token takes part; "weight" scales each by w_t
     elif args.share is not None:
         tau = float(np.percentile(allS, 100 * (1 - args.share)))
     elif args.gate == "entropy":
@@ -183,8 +189,12 @@ def main():
         tau = -args.margin_thr
     for e in ex:
         e["D"] = e["S"] > tau
-        e["clarity"] = abs(e["A"]) * float(e["D"].float().mean())
+        e["clarity"] = abs(e["A"]) * float((e["S"] if args.gate == "weight" else e["D"].float()).mean())
     dshare = float(np.mean([float(e["D"].float().mean()) for e in ex]))
+    if args.gate == "weight":
+        w = torch.cat([e["S"] for e in ex])
+        print(f"fork weights (gamma {args.gamma}): mean {float(w.mean()):.3f}; share > 0.5: {float((w > 0.5).float().mean()):.3f}; "
+              f"effective token share (sum w / n) {float(w.sum() / len(w)):.3f}", flush=True)
     print(f"gate {args.gate}: threshold {tau:.3f}; decision share of response tokens = {dshare:.4f}", flush=True)
     if not args.shuffle:
         ex.sort(key=lambda e: -e["clarity"])
@@ -211,11 +221,22 @@ def main():
             y = ids[0, 1:]
             D = torch.zeros(len(y), dtype=torch.bool, device="cuda"); D[e["P"] - 1:] = e["D"].cuda()
             a = max(-args.adv_clip, min(args.adv_clip, e["A"]))
-            l_dec = -(a * lq.gather(-1, y[:, None]).squeeze(-1)[D]).mean() if D.any() else torch.zeros((), device="cuda")
-            keep = ~D
-            if args.kl_scope == "response":
-                keep[: e["P"] - 1] = False
-            l_kl = (lr_.exp() * (lr_ - lq)).sum(-1)[keep].mean() if keep.any() else torch.zeros((), device="cuda")
+            if args.gate == "weight":   # soft: A_t = A * w_t over all response tokens; KL weighted by 1 - w_t
+                W = torch.zeros(len(y), device="cuda"); W[e["P"] - 1:] = e["S"].cuda()
+                R = torch.zeros(len(y), dtype=torch.bool, device="cuda"); R[e["P"] - 1:] = True
+                lp = lq.gather(-1, y[:, None]).squeeze(-1)
+                l_dec = -(a * (W * lp)[R].sum() / W[R].sum().clamp_min(1e-6))
+                V = 1 - W
+                if args.kl_scope == "response":
+                    V[: e["P"] - 1] = 0
+                kl_t = (lr_.exp() * (lr_ - lq)).sum(-1)
+                l_kl = (V * kl_t).sum() / V.sum().clamp_min(1e-6)
+            else:
+                l_dec = -(a * lq.gather(-1, y[:, None]).squeeze(-1)[D]).mean() if D.any() else torch.zeros((), device="cuda")
+                keep = ~D
+                if args.kl_scope == "response":
+                    keep[: e["P"] - 1] = False
+                l_kl = (lr_.exp() * (lr_ - lq)).sum(-1)[keep].mean() if keep.any() else torch.zeros((), device="cuda")
             ((l_dec + args.kl * l_kl) / args.accum).backward()
             n_micro += 1
             if n_micro % args.accum == 0:

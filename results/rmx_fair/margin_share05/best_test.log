@@ -1,0 +1,39 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+greedy test (1319 problems, chunks of 50):   0%|          | 0/27 [00:00<?, ?it/s]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy test (1319 problems, chunks of 50):   4%|▎         | 1/27 [00:33<14:39, 33.82s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy test (1319 problems, chunks of 50):   7%|▋         | 2/27 [01:03<13:10, 31.60s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy test (1319 problems, chunks of 50):  11%|█         | 3/27 [01:33<12:18, 30.78s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy test (1319 problems, chunks of 50):  15%|█▍        | 4/27 [02:04<11:52, 30.97s/it]8/50
+16/50
+24/50
+32/50
+40/50
+48/50
+50/50
+greedy test (1319 problems, chunks of 50):  19%|█▊        | 5/27 [02:35<11:18, 30.84s/it]8/50
+16/50
+24/50
