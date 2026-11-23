@@ -34,13 +34,16 @@ def main():
     ap.add_argument("--split", default="train")
     ap.add_argument("--model", default="olmo2-1b-base")
     ap.add_argument("--prefix", default="")
-    ap.add_argument("--label", choices=["gold", "majority"], default="gold")
+    ap.add_argument("--label", choices=["gold", "majority", "all"], default="gold",
+                    help="all = keep every output in --gens (pre-filtered data)")
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--epochs", type=int, default=2)
     ap.add_argument("--accum", type=int, default=8)
     ap.add_argument("--rank", type=int, default=32)
     ap.add_argument("--max_len", type=int, default=640)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--adapter_only", action="store_true", help="save only the LoRA adapter (no bf16 merge)")
+    ap.add_argument("--limit_ex", type=int, default=None)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -57,6 +60,8 @@ def main():
         ans = [s["lenient_answer"] for s in scores]
         if args.label == "gold":
             keep = [o for o, s in zip(outs, scores) if s["lenient_correct"]]
+        elif args.label == "all":
+            keep = list(outs)
         else:
             v = Counter(a for a in (r.get("label_answers") or ans) if a is not None)
             if not v:
@@ -75,6 +80,8 @@ def main():
             t_ids = tok(target, add_special_tokens=False).input_ids
             ids = (p_ids + t_ids)[: args.max_len]
             ex.append({"ids": ids, "P": len(p_ids)})
+    if args.limit_ex:
+        ex = ex[: args.limit_ex]
     print(f"{len(ex)} training solutions from {kept_q}/{len(rows)} questions; label={args.label}"
           + (f"; majority correct on {label_ok}" if args.label == "majority" else ""), flush=True)
 
@@ -105,6 +112,11 @@ def main():
                 if step % 20 == 0:
                     rec = {"step": step, "epoch": ep, "loss": float(loss) * args.accum}; log.append(rec); print(rec, flush=True)
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+    if args.adapter_only:
+        model.save_pretrained(out)
+        json.dump({"args": vars(args), "train_solutions": len(ex), "log": log}, open(out / "rft_config.json", "w"), indent=2)
+        print(f"saved adapter to {out}", flush=True)
+        return
     model.merge_and_unload().to(torch.bfloat16).save_pretrained(out, safe_serialization=True)
     tok.save_pretrained(out)
     json.dump({"args": vars(args), "train_solutions": len(ex), "log": log}, open(out / "rft_config.json", "w"), indent=2)

@@ -1,0 +1,20 @@
+{
+  "questions": 1000,
+  "greedy_acc": 0.411,
+  "greedy_wrong_but_a_branch_right": 156,
+  "args": {
+    "model": "olmo2-1b-base",
+    "format": "plain",
+    "split": "train",
+    "offset": 0,
+    "n": 1000,
+    "n_label": 8,
+    "forks": 4,
+    "m": 0,
+    "prefix": " Let's think step by step.",
+    "temperature": 0.7,
+    "max_tokens": 320,
+    "gpu_memory_utilization": 0.3,
+    "out": "results/fork_branch/base_cot_train1000_F4"
+  }
+}

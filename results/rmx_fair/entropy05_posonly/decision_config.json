@@ -1,0 +1,124 @@
+{
+  "args": {
+    "gens": "results/screen/olmo2-1b-base/train/sample_prefix-let-s-think-step-by-step_T0.6_n20",
+    "split": "train",
+    "model": "olmo2-1b-base",
+    "format": null,
+    "prefix": " Let's think step by step.",
+    "label": "gold",
+    "n_problems": 50,
+    "trim": 0.8,
+    "tau": 1.4,
+    "tau_pct": null,
+    "gate": "entropy",
+    "margin_thr": 0.2,
+    "gamma": 2.0,
+    "share": 0.05,
+    "kl": 0.2,
+    "kl_scope": "all",
+    "adv_clip": 2.5,
+    "lr": 0.0001,
+    "epochs": 2,
+    "max_steps": 149,
+    "warmup": 50,
+    "accum": 8,
+    "rank": 32,
+    "shuffle": false,
+    "positive_only": true,
+    "rft_weights": false,
+    "save_every": 50,
+    "max_len": 1024,
+    "limit": null,
+    "seed": 42,
+    "out": "/data/azfarm/siddhant_fork_lora/rmxfair_entropy05_posonly"
+  },
+  "stats": {
+    "skipped_uniform": 53,
+    "problems": 50,
+    "rollouts_selected": 1000,
+    "rollouts_after_trim": 800,
+    "pos_rollouts": 444
+  },
+  "threshold": 2.261063814163208,
+  "decision_share": 0.052745641992628774,
+  "steps": 111,
+  "log": [
+    {
+      "step": 10,
+      "epoch": 0,
+      "l_dec": 2.3872058391571045,
+      "l_kl": 0.00040837557753548026,
+      "lr": 2.2000000000000003e-05
+    },
+    {
+      "step": 20,
+      "epoch": 0,
+      "l_dec": 1.1106386184692383,
+      "l_kl": 0.05651037022471428,
+      "lr": 4.2e-05
+    },
+    {
+      "step": 30,
+      "epoch": 0,
+      "l_dec": 1.0824675559997559,
+      "l_kl": 0.12976869940757751,
+      "lr": 6.2e-05
+    },
+    {
+      "step": 40,
+      "epoch": 0,
+      "l_dec": 1.6396236419677734,
+      "l_kl": 0.09751089662313461,
+      "lr": 8.2e-05
+    },
+    {
+      "step": 50,
+      "epoch": 0,
+      "l_dec": 0.0012619660701602697,
+      "l_kl": 0.10631609708070755,
+      "lr": 0.0001
+    },
+    {
+      "step": 60,
+      "epoch": 1,
+      "l_dec": 1.3482041358947754,
+      "l_kl": 0.01493147388100624,
+      "lr": 8.387096774193549e-05
+    },
+    {
+      "step": 70,
+      "epoch": 1,
+      "l_dec": 0.6111464500427246,
+      "l_kl": 0.04386519640684128,
+      "lr": 6.774193548387096e-05
+    },
+    {
+      "step": 80,
+      "epoch": 1,
+      "l_dec": 0.6838556528091431,
+      "l_kl": 0.07034850865602493,
+      "lr": 5.161290322580645e-05
+    },
+    {
+      "step": 90,
+      "epoch": 1,
+      "l_dec": 0.9729710817337036,
+      "l_kl": 0.07536633312702179,
+      "lr": 3.548387096774194e-05
+    },
+    {
+      "step": 100,
+      "epoch": 1,
+      "l_dec": 0.40966033935546875,
+      "l_kl": 0.14687775075435638,
+      "lr": 1.935483870967742e-05
+    },
+    {
+      "step": 110,
+      "epoch": 1,
+      "l_dec": 0.0014191328082233667,
+      "l_kl": 0.07379749417304993,
+      "lr": 3.225806451612903e-06
+    }
+  ]
+}

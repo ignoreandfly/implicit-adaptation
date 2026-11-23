@@ -113,10 +113,16 @@ def main():
     ap.add_argument("--trim", type=float, default=0.8, help="keep this fraction of the shortest selected rollouts")
     ap.add_argument("--tau", type=float, default=1.4, help="absolute entropy threshold (nats) for decision points")
     ap.add_argument("--tau_pct", type=float, default=None, help="if set, use this percentile of entropies instead")
-    ap.add_argument("--gate", choices=["entropy", "margin", "all", "weight"], default="entropy",
+    ap.add_argument("--gate", choices=["entropy", "margin", "all", "weight", "eapo"], default="entropy",
                     help="decision points by reference entropy > tau (ReasonMaxxer) or by reference top-2 probability "
                          "margin < --margin_thr (our fork criterion)")
     ap.add_argument("--margin_thr", type=float, default=0.2)
+    ap.add_argument("--kappa", type=float, default=1.0,
+                    help="--gate eapo (arXiv 2609.33781 Eq. 3-4, offline): w_t = exp(kappa s h_t) / mean(...), h = reference "
+                         "entropy scaled to its 10th-90th percentiles over all rollouts; s = --s_pos / --s_neg")
+    ap.add_argument("--s_pos", type=float, default=1.0, help="right solutions: +1 high-entropy tokens, 0 uniform")
+    ap.add_argument("--s_neg", type=float, default=-1.0, help="wrong solutions: -1 low-entropy tokens (EAPO), +1 high")
+    ap.add_argument("--adapter_only", action="store_true", help="do not save the merged model")
     ap.add_argument("--gamma", type=float, default=2.0,
                     help="--gate weight: soft fork weighting, per-token advantage A * w_t with w_t = (1 - m_t)^gamma "
                          "(m_t = reference top-2 probability margin); KL anchor weighted by 1 - w_t")
@@ -175,13 +181,20 @@ def main():
         elif args.gate == "weight":
             top = lr.exp().topk(2, -1).values
             e["S"] = (1 - (top[:, 0] - top[:, 1])).clamp(0, 1).pow(args.gamma).cpu()   # fork weight w_t
-        elif args.gate == "entropy":
+        elif args.gate in ("entropy", "eapo"):
             e["S"] = (-(lr.exp() * lr).sum(-1)).cpu()
         else:
             top = lr.exp().topk(2, -1).values
             e["S"] = -(top[:, 0] - top[:, 1]).cpu()          # negative top-2 margin
     allS = torch.cat([e["S"] for e in ex]).numpy()
-    if args.gate in ("all", "weight"):
+    if args.gate == "eapo":
+        q10, q90 = np.percentile(allS, 10), np.percentile(allS, 90)
+        for e in ex:
+            h = ((e["S"] - q10) / (q90 - q10 + 1e-8)).clamp(0, 1)
+            w = torch.exp(args.kappa * (args.s_pos if e["A"] > 0 else args.s_neg) * h)
+            e["W"] = w / w.mean()
+        print(f"eapo: q10 {q10:.3f} q90 {q90:.3f} kappa {args.kappa} s_pos {args.s_pos} s_neg {args.s_neg}", flush=True)
+    if args.gate in ("all", "weight", "eapo"):
         tau = -1.0       # every response token takes part; "weight" scales each by w_t
     elif args.share is not None:
         tau = float(np.percentile(allS, 100 * (1 - args.share)))
@@ -235,6 +248,10 @@ def main():
                     V[: e["P"] - 1] = 0
                 kl_t = (lr_.exp() * (lr_ - lq)).sum(-1)
                 l_kl = (V * kl_t).sum() / V.sum().clamp_min(1e-6)
+            elif args.gate == "eapo":    # token credit over all response tokens; same KL (all positions) in every cell
+                lp = lq.gather(-1, y[:, None]).squeeze(-1)[e["P"] - 1:]
+                l_dec = -(a * (e["W"].cuda() * lp).mean())
+                l_kl = (lr_.exp() * (lr_ - lq)).sum(-1).mean()
             else:
                 l_dec = -(a * lq.gather(-1, y[:, None]).squeeze(-1)[D]).mean() if D.any() else torch.zeros((), device="cuda")
                 keep = ~D
@@ -258,7 +275,8 @@ def main():
             break
     bar.close()
     model.save_pretrained(out / f"adapter_step{step}")
-    model.merge_and_unload().to(torch.bfloat16).save_pretrained(out, safe_serialization=True)
+    if not args.adapter_only:
+        model.merge_and_unload().to(torch.bfloat16).save_pretrained(out, safe_serialization=True)
     tok.save_pretrained(out)
     json.dump({"args": vars(args), "stats": dict(stats), "threshold": tau, "decision_share": dshare, "steps": step,
                "log": log}, open(out / "decision_config.json", "w"), indent=2)
