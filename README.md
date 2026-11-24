@@ -190,6 +190,60 @@ Gold vs shuffled on test500: +4.8, McNemar p = 0.037. A consistent but small gai
 reach significance against the untrained baseline; the label-free version gives nothing on Base (majority labels were
 correct on only 46% of training questions). **The RFT baseline beats the fork-contrastive LoRA by 5.4 points on test500 (same 1,000 questions, same LoRA settings): the fork-local training is not what helps; whole correct self-generated solutions are a much stronger signal.** Label-free (majority) RFT also helps significantly (+4.4), recovering ~70% of what 10-sample self-consistency gives on this setup (43.2%) at 1x inference cost — even though the base model's majority answer was right on only 46% of the training questions.
 
+### Inference-time methods on the full GSM8K test (seahorse, 2026-11-22/23)
+
+`scripts/fulltest_inference.sh`, 1,319 problems, `methods.run`, bf16; each method at its best Base-dev setting (SFT reuses
+it, not re-tuned; Base 256 / SFT 512 new tokens). Metrics in `results/fulltest/`; paired McNemar: `analysis/fulltest_paired.py`
+(no multiple-comparison correction). RL reference: **Instruct greedy 67.1%**. "Gap closed" = (method - greedy) / (Instruct - greedy).
+
+| 1B SFT (greedy 58.9%) | Acc. | vs greedy | Gap closed | vs Instruct greedy | Tokens |
+|---|---|---|---|---|---|
+| Self-consistency n=10 + self-certainty Borda 0.5 / 1.0 | 72.2 / 72.0% | +13.3 / +13.1 | 162 / 160% | not tested | 1561 + rescoring |
+| CoT-decoding k=10, aggregated | 71.6% | +12.7 | 155% | +4.5 (p<0.001) | 1447 |
+| Self-consistency n=10, majority | 70.0% | +11.1 | 135% | +2.9 (p=0.017) | 1561 |
+| EAGer theta 1.0, M=10 | 68.1% | +9.2 | 112% | +1.0 (p=0.46) | 1304 |
+| Power-SMC N=16, majority / sampled | 60.7 / 60.2% | +1.7 / +1.3 (n.s.) | 21 / 16% | -6.4 / -6.9 | 2122 |
+| CFG 1.25 | 60.3% | +1.4 (n.s.) | 17% | -6.8 | 127 (x2 passes) |
+| CoT-decoding k=10, max confidence | 59.2% | +0.3 (n.s.) | 4% | -7.9 | 1447 |
+| TLSC K=4 | 58.9% | 0.0 | 0% | -8.2 | 542 |
+| Contrastive 0.25 / DoLa / budget forcing | 56.3 / 53.2 / 51.8% | -2.7 / -5.7 / -7.1 | <0 | -10.8 / -13.9 / -15.3 | 148 / 151 / 298 |
+
+| 1B Base (CoT greedy 37.3%) | Acc. | vs CoT greedy | Gap closed |
+|---|---|---|---|
+| Self-consistency n=10 + self-certainty Borda 0.5 / 1.0 | 45.7 / 44.7% | +8.4 / +7.4 | 28 / 25% |
+| Self-consistency n=10, majority | 43.1% | +5.8 (p<0.001) | 19% |
+| EAGer theta 1.0, M=10 | 42.9% | +5.6 (p<0.001) | 19% |
+| Power-SMC N=16, majority / sampled | 41.6 / 35.9% | +4.3 (p=0.002) / -1.4 | 15% / <0 |
+| Rule adapter A, vote / greedy | 37.0 / 30.7% | -0.3 / -6.6 | <0 |
+| CoT-decoding k=10, aggregated / max | 34.6 / 29.0% | -2.7 / -8.3 | <0 |
+| TLSC / CFG 1.25 / contrastive 0.25 | 34.1 / 32.9 / 32.3% | -3.2 / -4.4 / -5.0 | <0 |
+| Forced "First," / budget forcing / forced "Let's" | 29.4 / 28.2 / 27.9% | -7.9 / -9.1 / -9.4 | <0 |
+| Zero-shot greedy / DoLa (no CoT prefix) | 8.1 / 5.8% | -29.2 / -31.5 | <0 |
+
+Multi-path voting takes SFT to or past RL greedy at ~8-9x its 171 tokens (RL also improves with voting); no single-output
+method helps significantly. Base is not closed this way.
+
+### Training-free "global forks" (SSFT idea, 1B SFT; seahorse)
+
+Fixed opening set (`analysis/global_forks*.py`, 500 train questions, 6 paths, 20 CV splits): chosen set 80.6% vs plain
+sampling 80.9% vs best single opening x6 81.3%: no gain. First-token branching (top-k first tokens of each question, then
+greedy) beat T=0.7 voting on the full test at k=4/6 (66.9 vs 60.7, 68.7 vs 66.1), not at k=8/10 (post hoc). Control
+(`analysis/first_token_control.py`, 1,000 other train questions, majority vote, one vLLM pipeline, sampling = mean of 3 seeds):
+
+| Condition | k=1 | k=4 | k=6 | k=8 | k=10 |
+|---|---|---|---|---|---|
+| First-token forks, greedy | 70.0 | **77.6** | **79.8** | **81.4** | **82.1** |
+| First-token forks, T=0.3 / 0.5 / 0.7 | 68.0 / 66.1 / 61.6 | 77.6 / 77.7 / 73.2 | 79.9 / 79.7 / 77.7 | 81.4 / 81.0 / 79.3 | 82.0 / 81.4 / 80.6 |
+| Sampling T=0.3 | 68.2 | 75.4 | 78.3 | 79.0 | 79.7 |
+| Sampling T=0.5 | 64.1 | 74.7 | 78.2 | 79.9 | 80.9 |
+| Sampling T=0.7 | 59.3 | 72.9 | 76.6 | 79.4 | 80.8 |
+| Greedy + samples T=0.3 / 0.5 / 0.7 | 68.7 | 75.2 / 75.4 / 75.1 | 75.8 / 77.5 / 78.0 | 77.5 / 79.4 / 79.8 | 79.5 / 80.4 / 80.6 |
+
+Forks (greedy) minus the best sampling temperature [95% bootstrap CI]: k=4 +2.2 [+0.2, +4.2] (T 0.3); k=6 +1.5 [-0.4, +3.6]
+(T 0.3); k=8 +1.5 [-0.4, +3.4] (T 0.5); k=10 +1.2 [-0.6, +3.1] (T 0.5). So most of the test-set gap at k=4 (+6.2) was the T=0.7 baseline; what is
+left is ~1-2 points, above zero only at k=4. Coverage at 6 paths is about equal (90.7% vs 89-91%). Cost is equal (879 vs
+~873 tokens at k=6). Train accuracy is higher than test (SFT may have seen these questions). Not confirmed on test.
+
 ### Self-SSFT: global forking tokens trained on the model's own traces (1B SFT, test500)
 
 SSFT (Jia et al., ICLR 2026, [arXiv 2510.05132](https://arxiv.org/abs/2510.05132)) adds tokens `<think1..N>` and
