@@ -34,6 +34,15 @@ def style(ax, title):
     ax.set_axisbelow(True)
 
 
+def enlarge(fig, k):
+    """Scale every text and line in a figure so it stays readable when shrunk to a 5.5in column."""
+    import matplotlib.text, matplotlib.lines
+    for t in fig.findobj(matplotlib.text.Text):
+        t.set_fontsize(t.get_fontsize() * k)
+    for l in fig.findobj(matplotlib.lines.Line2D):
+        l.set_linewidth(l.get_linewidth() * 1.3); l.set_markersize(l.get_markersize() * 1.2)
+
+
 def hbar(ax, names, vals, fmt="{:.1f}"):
     y = range(len(names))
     ax.barh(list(y), vals, color=[C[n] for n in names], height=0.62, edgecolor=SURF, linewidth=2)
@@ -78,7 +87,7 @@ def main():
     ax.set_xlabel("mean distinct answers per problem (1 = all paths agree)", color=INK2)
     fig.suptitle("Self-SSFT vs RFT on OLMo 2 1B SFT - GSM8K test500 (500 problems; +/-2.2 pts noise)", x=0.01, ha="left",
                  fontsize=13, color=INK, fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.96)); fig.savefig(out / "ssft_results.png", dpi=150, facecolor=SURF); plt.close(fig)
+    enlarge(fig, 1.3); fig.tight_layout(rect=(0, 0, 1, 0.96)); fig.savefig(out / "ssft_results.png", dpi=150, facecolor=SURF); plt.close(fig)
 
     # ---------- per-tag accuracy ----------
     fig, ax = plt.subplots(figsize=(8, 4.2), facecolor=SURF); style(ax, "Accuracy of each tag (greedy)")
@@ -94,18 +103,19 @@ def main():
     # ---------- training ----------
     logs = {n: json.load(open(R / "configs" / f"{n}.json"))["log"]
             for n in ["ssft_gold", "ssft_majority", "ssft_gold_random", "rft_gold_m4"]}
-    fig, axs = plt.subplots(1, 3, figsize=(15, 4.4), facecolor=SURF)
-    ax = axs[0]; style(ax, "Training loss (noisy: one batch per point)")
+    fig, axs = plt.subplots(1, 3, figsize=(14, 4.6), facecolor=SURF)
+    ax = axs[0]; style(ax, "Training loss (one batch/point)")
     for n, L in logs.items():
         ax.plot([r["step"] for r in L], [r["loss"] for r in L], color=C[n], linewidth=2, label=NAME[n])
-    ax.set_xlabel("optimizer step", color=INK2); ax.set_ylabel("token NLL", color=INK2); ax.legend(frameon=False, fontsize=9)
+    ax.set_xlabel("optimizer step", color=INK2); ax.set_ylabel("token NLL", color=INK2)
+    ax.legend(frameon=False, fontsize=8, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.18))
 
-    ax = axs[1]; style(ax, "Matching stability vs epoch 1")
+    ax = axs[1]; style(ax, "Same assignment as epoch 1")
     for n in ["ssft_gold", "ssft_majority"]:
         pts = [(r["step"], 100 * r["assignment_stable"]) for r in logs[n] if "assignment_stable" in r]
         ax.plot([p[0] for p in pts], [p[1] for p in pts], color=C[n], linewidth=2, marker="o", markersize=7,
                 markeredgecolor=SURF, markeredgewidth=2, label=NAME[n])
-    ax.axhline(25, color=INK2, linestyle=":", linewidth=1.2); ax.text(ax.get_xlim()[0], 26, " chance for 4 tags (approx.)", fontsize=8, color=INK2)
+    ax.axhline(100 / 24, color=INK2, linestyle=":", linewidth=1.2); ax.text(ax.get_xlim()[0], 7, " chance ~4% (1 of 24 assignments)", fontsize=8, color=INK2)
     ax.set_ylim(0, 100); ax.set_xlabel("optimizer step (epoch 2)", color=INK2); ax.set_ylabel("% of questions", color=INK2)
     ax.legend(frameon=False, fontsize=9)
 
@@ -119,7 +129,7 @@ def main():
     ax.axhline(25, color=INK, linewidth=0.8, linestyle=":"); ax.set_ylim(0, 100)
     ax.set_xlabel("optimizer step", color=INK2); ax.set_ylabel("% of matched traces", color=INK2)
     ax.legend(frameon=False, fontsize=8, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.18))
-    fig.tight_layout(); fig.savefig(out / "ssft_training.png", dpi=150, facecolor=SURF); plt.close(fig)
+    enlarge(fig, 1.45); fig.tight_layout(); fig.savefig(out / "ssft_training.png", dpi=150, facecolor=SURF); plt.close(fig)
     print("wrote", sorted(p.name for p in out.glob("*.png")))
 
 

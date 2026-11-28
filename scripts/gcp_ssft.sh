@@ -11,9 +11,12 @@ cd "$(dirname "$0")/.."
 VPY=${VPY:-python}; HPY=${HPY:-python}; MEM=${MEM:-0.85}
 STEPS=${STEPS:-"data train eval cons"}
 SMOKE=${SMOKE:-0}
-if [ "$SMOKE" = 1 ]; then NQ=40; R=results/ssft_self_smoke; EVAL="--split dev --limit 40"; SPLIT=dev; LIM="--limit 40"
-else NQ=1500; R=results/ssft_self; EVAL="--subset 500"; SPLIT=test; LIM=""; fi
-CK=${CK:-checkpoints/ssft_self$([ "$SMOKE" = 1 ] && echo _smoke)}
+SIZE=${SIZE:-1b}                       # 1b or 7b
+SFTM=olmo2-${SIZE}-sft; INSTM=olmo2-${SIZE}-instruct
+SUF=$([ "$SIZE" = 1b ] || echo "_$SIZE")
+if [ "$SMOKE" = 1 ]; then NQ=40; R=results/ssft_self${SUF}_smoke; EVAL="--split dev --limit 40"; SPLIT=dev; LIM="--limit 40"
+else NQ=1500; R=results/ssft_self${SUF}; EVAL="--subset 500"; SPLIT=test; LIM=""; fi
+CK=${CK:-checkpoints/ssft_self${SUF}$([ "$SMOKE" = 1 ] && echo _smoke)}
 NT=4
 mkdir -p $R/eval $CK logs
 SAMPLES=$R/sft_train${NQ}_n8
@@ -22,17 +25,17 @@ acc () { grep -oE "'acc_lenient': [0-9.]+" $1 | tail -1; }
 [ -f data/gsm8k/test.jsonl ] || { echo "prepare data first (RUNBOOK section 1)"; exit 1; }
 
 if has data; then   # 8 SFT samples per training question (T 0.7), same recipe as the RFT-on-SFT runs
-  [ -f $SAMPLES/train.generations.jsonl ] || $VPY -m evaluation.generate --backend vllm --model olmo2-1b-sft \
+  [ -f $SAMPLES/train.generations.jsonl ] || $VPY -m evaluation.generate --backend vllm --model $SFTM \
     --split train --subset $NQ --n_samples 8 --temperature 0.7 --gpu_memory_utilization $MEM --out $SAMPLES \
-    > logs/ssft_data.log 2>&1
-  echo "data: $(acc logs/ssft_data.log)"
+    > logs/ssft${SUF}_data.log 2>&1
+  echo "data: $(acc logs/ssft${SUF}_data.log)"
 fi
 
 gen () {  # out-tag, model, extra args
   local t=$1 m=$2; shift 2
   [ -f $R/eval/$t/$SPLIT.metrics.json ] || $VPY -m evaluation.generate --backend vllm --model $m --format chat $EVAL \
-    --gpu_memory_utilization $MEM "$@" --out $R/eval/$t > logs/ssft_eval_$t.log 2>&1
-  echo "eval $t: $(acc logs/ssft_eval_$t.log)"
+    --gpu_memory_utilization $MEM "$@" --out $R/eval/$t > logs/ssft${SUF}_eval_$t.log 2>&1
+  echo "eval $t: $(acc logs/ssft${SUF}_eval_$t.log)"
 }
 evals () {  # out-tag, model, tagged(0/1): greedy + T0.7 paths; untagged = greedy + 4 samples (= one path per tag)
   local t=$1 m=$2
@@ -51,21 +54,21 @@ model () {  # tag, tagged(0/1), trainer module, args...
   local tag=$1 tg=$2 mod=$3; shift 3
   done_evals $tag $tg && { echo "done $tag"; return; }
   if has train && [ ! -f $CK/$tag/model.safetensors ]; then
-    $HPY -m $mod "$@" --out $CK/$tag > logs/ssft_train_$tag.log 2>&1
+    $HPY -m $mod "$@" --out $CK/$tag > logs/ssft${SUF}_train_$tag.log 2>&1
   fi
-  [ -f $CK/$tag/model.safetensors ] || { echo "TRAINING FAILED $tag (logs/ssft_train_$tag.log)"; return; }
-  echo "trained $tag: $(grep -m1 'questions\|training solutions' logs/ssft_train_$tag.log)"
+  [ -f $CK/$tag/model.safetensors ] || { echo "TRAINING FAILED $tag (logs/ssft${SUF}_train_$tag.log)"; return; }
+  echo "trained $tag: $(grep -m1 'questions\|training solutions' logs/ssft${SUF}_train_$tag.log)"
   mkdir -p $R/configs; cp $CK/$tag/ssft_config.json $R/configs/$tag.json 2>/dev/null || cp $CK/$tag/rft_config.json $R/configs/$tag.json 2>/dev/null
   has eval && evals $tag $CK/$tag $tg
   done_evals $tag $tg && [ "${KEEP:-0}" != 1 ] && rm -rf $CK/$tag
 }
-if has eval; then evals olmo2-1b-sft olmo2-1b-sft 0; evals olmo2-1b-instruct olmo2-1b-instruct 0; fi
+if has eval; then evals $SFTM $SFTM 0; evals $INSTM $INSTM 0; fi
 for lab in gold majority; do
-  model ssft_$lab     1 train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label $lab --n_tags $NT --m $NT --assign match
-  model rft_${lab}_m4 0 train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label $lab --n_tags $NT --m $NT --assign none
+  model ssft_$lab     1 train.ssft_lora --gens $SAMPLES --model $SFTM --label $lab --n_tags $NT --m $NT --assign match
+  model rft_${lab}_m4 0 train.ssft_lora --gens $SAMPLES --model $SFTM --label $lab --n_tags $NT --m $NT --assign none
 done
-model ssft_gold_random 1 train.ssft_lora --gens $SAMPLES --model olmo2-1b-sft --label gold --n_tags $NT --m $NT --assign random
-model rft_gold_all     0 train.rft_lora  --gens $SAMPLES --model olmo2-1b-sft --label gold --lr 1e-4 --epochs 2
+model ssft_gold_random 1 train.ssft_lora --gens $SAMPLES --model $SFTM --label gold --n_tags $NT --m $NT --assign random
+model rft_gold_all     0 train.rft_lora  --gens $SAMPLES --model $SFTM --label gold --lr 1e-4 --epochs 2
 
 if has cons; then
   E=$R/eval
@@ -73,8 +76,10 @@ if has cons; then
   for lab in gold majority; do
     $HPY -m analysis.ssft_cons --split $SPLIT $(tags ssft_$lab) $(tags ssft_$lab _T0.7) \
       $([ $lab = gold ] && tags ssft_gold_random) samples:rft_${lab}_m4=$E/rft_${lab}_m4_n4 \
-      $([ $lab = gold ] && echo samples:rft_gold_all=$E/rft_gold_all_n4) samples:sft=$E/olmo2-1b-sft_n4 \
-      samples:instruct=$E/olmo2-1b-instruct_n4 --out $R/cons_$lab.json
+      $([ $lab = gold ] && echo samples:rft_gold_all=$E/rft_gold_all_n4) samples:sft=$E/${SFTM}_n4 \
+      samples:instruct=$E/${INSTM}_n4 --out $R/cons_$lab.json
   done
 fi
 echo "=== gcp_ssft done $(date)"
+# stop the VM when everything is done (set SHUTDOWN=1 on a dedicated cloud VM so it stops billing)
+[ "${SHUTDOWN:-0}" = 1 ] && [ "$SMOKE" != 1 ] && sudo shutdown -h +2 "gcp_ssft finished"

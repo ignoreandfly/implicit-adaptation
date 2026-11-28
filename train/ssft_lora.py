@@ -116,6 +116,7 @@ def main():
     ap.add_argument("--accum", type=int, default=8, help="questions per optimizer step")
     ap.add_argument("--rank", type=int, default=32)
     ap.add_argument("--max_len", type=int, default=640)
+    ap.add_argument("--chunk", type=int, default=4, help="sequences per forward pass (memory)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--out", required=True)
@@ -161,14 +162,17 @@ def main():
             p.data = p.data.float()
     lora_params = [p for p in model.parameters() if p.requires_grad]
     groups = [{"params": lora_params, "lr": args.lr}]
-    if tags:   # only the new rows learn: gradients of every other row are zeroed (Adam then leaves them unchanged)
-        emb_w = model.get_input_embeddings().weight
-        emb_w.data = emb_w.data.float()
-        emb_w.requires_grad_(True)
-        mask = torch.zeros(emb_w.shape[0], 1, device=emb_w.device, dtype=emb_w.dtype)
-        mask[tag_ids] = 1
-        emb_w.register_hook(lambda gr: gr * mask)
-        groups.append({"params": [emb_w], "lr": args.emb_lr})
+    delta = None
+    if tags:   # tag embeddings learn through a small (N x d) delta added in a forward hook; merged into the rows at save
+        emb_mod = model.get_input_embeddings()
+        tag_t = torch.tensor(tag_ids, device="cuda")
+        delta = torch.nn.Parameter(torch.zeros(len(tag_ids), emb_mod.weight.shape[1], device="cuda"))
+
+        def add_delta(mod, inp, out):
+            hit = (inp[0].unsqueeze(-1) == tag_t).to(delta.dtype)          # [B, L, N]
+            return out + (hit @ delta).to(out.dtype)
+        hook = emb_mod.register_forward_hook(add_delta)
+        groups.append({"params": [delta], "lr": args.emb_lr})
     opt = torch.optim.AdamW(groups, weight_decay=0.0)
     total = math.ceil(len(sets) * args.epochs / args.accum); warm = max(1, total // 20)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / warm) * max(0.0, 1 - s / max(1, total)))
@@ -199,12 +203,17 @@ def main():
         return ids, lab, att
 
     def per_seq_loss(ids, lab, att):
-        with torch.autocast("cuda", dtype=torch.bfloat16):
-            logits = model(input_ids=ids, attention_mask=att).logits[:, :-1].float()
-        tgt = lab[:, 1:]
-        nll = torch.nn.functional.cross_entropy(logits.transpose(1, 2), tgt.clamp(min=0), reduction="none")
-        m = (tgt != -100).float()
-        return (nll * m).sum(1) / m.sum(1).clamp(min=1)
+        """Mean token NLL per sequence, computed --chunk sequences at a time (full-vocab logits are large at 7B)."""
+        outs = []
+        for i in range(0, ids.shape[0], args.chunk):
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                logits = model(input_ids=ids[i:i + args.chunk], attention_mask=att[i:i + args.chunk]).logits[:, :-1]
+            tgt = lab[i:i + args.chunk, 1:]
+            nll = torch.nn.functional.cross_entropy(logits.float().transpose(1, 2), tgt.clamp(min=0), reduction="none")
+            m = (tgt != -100).float()
+            outs.append((nll * m).sum(1) / m.sum(1).clamp(min=1))
+            del logits, nll
+        return torch.cat(outs)
 
     model.train(); step = 0; log = []; usage = Counter(); agree_prev = []
     prev_assign = {}
@@ -239,6 +248,11 @@ def main():
                     log.append(rec); print(rec, flush=True); usage = Counter(); agree_prev = []
 
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+    if delta is not None:
+        hook.remove()
+        with torch.no_grad():
+            w = model.get_input_embeddings().weight
+            w[tag_ids] = (w[tag_ids].float() + delta).to(w.dtype)
     model.merge_and_unload().to(torch.bfloat16).save_pretrained(out, safe_serialization=True)
     tok.save_pretrained(out)
     json.dump({"args": vars(args), "tags": tags, "questions": len(sets), "traces": n_tr, "log": log},
