@@ -53,10 +53,11 @@ done_evals () { [ -f $R/eval/$1$([ "$2" = 1 ] && echo _t${NT}_T0.7 || echo _n4)/
 model () {  # tag, tagged(0/1), trainer module, args...
   local tag=$1 tg=$2 mod=$3; shift 3
   done_evals $tag $tg && { echo "done $tag"; return; }
-  if has train && [ ! -f $CK/$tag/model.safetensors ]; then
+  if has train && ! ls $CK/$tag/*_config.json >/dev/null 2>&1; then
+    rm -rf $CK/$tag   # partial save from an interrupted run
     $HPY -m $mod "$@" --out $CK/$tag > logs/ssft${SUF}_train_$tag.log 2>&1
   fi
-  [ -f $CK/$tag/model.safetensors ] || { echo "TRAINING FAILED $tag (logs/ssft${SUF}_train_$tag.log)"; return; }
+  ls $CK/$tag/*_config.json >/dev/null 2>&1 || { echo "TRAINING FAILED $tag (logs/ssft${SUF}_train_$tag.log)"; return; }
   echo "trained $tag: $(grep -m1 'questions\|training solutions' logs/ssft${SUF}_train_$tag.log)"
   mkdir -p $R/configs; cp $CK/$tag/ssft_config.json $R/configs/$tag.json 2>/dev/null || cp $CK/$tag/rft_config.json $R/configs/$tag.json 2>/dev/null
   has eval && evals $tag $CK/$tag $tg
