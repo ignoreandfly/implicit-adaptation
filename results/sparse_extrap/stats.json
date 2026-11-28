@@ -1,0 +1,52 @@
+{
+  "params": 1484916736,
+  "frac_changed": 0.3984816122376844,
+  "energy_in_top": {
+    "0.01": 0.5380089925732343,
+    "0.05": 0.5552195687885816,
+    "0.2": 0.9395526695115513,
+    "0.5": 0.9993720242357125
+  },
+  "by_module": {
+    "embed_tokens": {
+      "frac_changed": 0.03136450417187749,
+      "share_of_energy": 0.006703082411582283
+    },
+    "q_proj": {
+      "frac_changed": 0.5850365906953812,
+      "share_of_energy": 0.053657843706964
+    },
+    "k_proj": {
+      "frac_changed": 0.6027080118656158,
+      "share_of_energy": 0.057886044703185834
+    },
+    "v_proj": {
+      "frac_changed": 0.4835389405488968,
+      "share_of_energy": 0.05816705844516408
+    },
+    "o_proj": {
+      "frac_changed": 0.49293386936187744,
+      "share_of_energy": 0.058967069261159966
+    },
+    "norm": {
+      "frac_changed": 0.024489182692307692,
+      "share_of_energy": 2.201658919036709e-06
+    },
+    "gate_proj": {
+      "frac_changed": 0.44042376056313515,
+      "share_of_energy": 0.2186596227857609
+    },
+    "up_proj": {
+      "frac_changed": 0.47360898926854134,
+      "share_of_energy": 0.22967959229743246
+    },
+    "down_proj": {
+      "frac_changed": 0.48136475309729576,
+      "share_of_energy": 0.2297573198277105
+    },
+    "lm_head": {
+      "frac_changed": 0.3184608391353062,
+      "share_of_energy": 0.08652016490212049
+    }
+  }
+}
